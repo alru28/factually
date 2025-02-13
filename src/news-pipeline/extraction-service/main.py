@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app.core.scrapper import scrape_articles_base, scrape_articles_content
+from app.core.scrapper import scrape_articles_base, scrape_articles_content, scrape_articles_content_requests
 from app.utils.storage import store_articles_to_json
 
 def main():

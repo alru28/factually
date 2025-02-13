@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 from typing import List
 from bs4 import BeautifulSoup
+import requests
+from requests.exceptions import RequestException
 import time
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -117,4 +119,26 @@ def scrape_articles_content(articles: List[ArticleBase]) -> List[Article]:
         article_list.append(article_content)
 
     driver.quit()
+    return article_list
+
+
+def scrape_articles_content_requests(articles: List[ArticleBase]) -> List[Article]:
+    article_list = []
+    DefaultLogger().get_logger().info(f"Scraping contents from {len(articles)} articles")
+    
+    for article in articles:
+        try:
+            response = requests.get(str(article.Link), timeout=3)
+            response.raise_for_status()  # raise an error for bad status codes
+        except RequestException as e:
+            DefaultLogger().get_logger().error(
+                f"Error loading {str(article.Link)}: No content was extracted.",
+                exc_info=True
+            )
+            continue
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        article_content = process_articles_content(article, soup)
+        article_list.append(article_content)
+
     return article_list
