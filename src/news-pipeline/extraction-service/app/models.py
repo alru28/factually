@@ -6,6 +6,7 @@ class ArticleBase(BaseModel):
     Title: str = Field(default="DefaultTitle")
     Date: str = Field(default_factory=lambda: date.today().isoformat())
     Link: HttpUrl
+    Source: HttpUrl
 
     @field_validator("Date", mode='before')
     def validate_fecha(cls, value):
@@ -14,9 +15,9 @@ class ArticleBase(BaseModel):
         return value
 
 class Reference(BaseModel):
-    text: str
-    link: str
+    Text: str
+    Link: HttpUrl
 
 class Article(ArticleBase):
-    paragraphs: Optional[List[str]] = Field(default_factory=list)
-    references: Optional[List[Reference]] = Field(default_factory=list)
+    Paragraphs: Optional[List[str]] = Field(default_factory=list)
+    References: Optional[List[Reference]] = Field(default_factory=list)

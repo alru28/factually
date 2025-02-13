@@ -1,10 +1,10 @@
-from app.models import ArticleBase
+from app.models import ArticleBase, Article, Reference
 from app.utils.url_helpers import fix_links
 from app.utils.date_formatter import format_date_str
 from app.utils.logger import DefaultLogger
 import re
 
-def process_articles_base(article_soup, source, date_base, date_cutoff) -> tuple[list[ArticleBase], bool]:
+def process_articles_base(article_soup, source, date_base, date_cutoff, url) -> tuple[list[ArticleBase], bool]:
     valid_articles = []
     older_than_cutoff = False
     
@@ -27,10 +27,26 @@ def process_articles_base(article_soup, source, date_base, date_cutoff) -> tuple
                 if match:
                     year_extracted, month_extracted, day_extracted = match.groups()
                     date_text = f"{day_extracted}/{month_extracted}/{year_extracted}"
-                    DefaultLogger().get_logger().debug(f"Date extracted from article URL: {date_text}")
+                    DefaultLogger().get_logger().debug(f"Date extracted from article link: {date_text}")
                 else:
-                    DefaultLogger().get_logger().warning("Date couldn't be extracted from URL")
-                    date_text = "NoDate"
+                    template = source['url']
+                    pattern = re.escape(template)
+                    pattern = pattern.replace(r'\{year\}', r'(?P<year>\d{4})')
+                    pattern = pattern.replace(r'\{month\}', r'(?P<month>\d{1,2})')
+                    pattern = pattern.replace(r'\{day\}', r'(?P<day>\d{1,2})')
+                    pattern = pattern.replace(r'\{page\}', r'\d+')
+                    
+                    match = re.search(pattern, url)
+                    if match:
+                        year_extracted = match.group("year")
+                        month_extracted = match.group("month")
+                        day_extracted = match.group("day")
+
+                        date_text = f"{day_extracted}/{month_extracted}/{year_extracted}"
+                        DefaultLogger().get_logger().debug(f"Date extracted from article URL: {date_text}")
+                    else:
+                        DefaultLogger().get_logger().warning("Date couldn't be extracted from URL")
+                        date_text = "NoDate"
             else:
                     DefaultLogger().get_logger().warning("Date couldn't be found in the article")
                     date_text = "NoDate"
@@ -62,7 +78,38 @@ def process_articles_base(article_soup, source, date_base, date_cutoff) -> tuple
         valid_articles.append(ArticleBase(
             Title=title,
             Date=date_article,
-            Link=link
+            Link=link,
+            Source=source['base_url']
         ))
     
     return valid_articles, older_than_cutoff
+
+def process_articles_content(article: ArticleBase, article_soup) -> Article:
+    paragraphs = []
+    references = []
+    seen_links = set()
+
+    for p in article_soup.find_all('p'):
+        text = p.get_text(strip=True)
+        if text and len(text) > 40:
+            paragraphs.append(text)
+
+            for a in p.find_all('a'):
+                href = a.get('href')
+                if not href:
+                    continue
+                
+                full_url = fix_links(str(article.Source), href)
+                link_text = a.get_text(strip=True) or ""
+                
+                if full_url not in seen_links and link_text != "":
+                    seen_links.add(full_url)
+                    references.append(
+                        Reference(Text=link_text, Link=full_url)
+                    )
+
+    return Article(
+        **article.dict(),
+        Paragraphs=paragraphs,
+        References=references
+    )

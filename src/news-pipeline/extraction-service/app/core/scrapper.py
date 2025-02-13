@@ -8,9 +8,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from app.utils.url_helpers import safe_url_format
 from app.utils.logger import DefaultLogger
-from app.core.article_processing import process_articles_base
+from app.core.article_processing import process_articles_base, process_articles_content
 from app.core.driver import scroll_down, init_driver
-from app.models import ArticleBase
+from app.models import ArticleBase, Article
 from app.config import sources
 
 def obtain_urls(source: str, date_base: date, date_cutoff: date):
@@ -35,7 +35,7 @@ def collect_articles(source: str, driver, url: str, date_base: date, date_cutoff
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     articles = soup.find_all('div', class_=sources[source]['article_selector'])
 
-    articles_processed, older_than_cutoff = process_articles_base(articles, sources[source], date_base, date_cutoff)
+    articles_processed, older_than_cutoff = process_articles_base(articles, sources[source], date_base, date_cutoff, url)
 
     return articles_processed, older_than_cutoff
 
@@ -94,6 +94,27 @@ def scrape_articles_base(source: str, date_base: date, date_cutoff: date) -> Lis
         else:
             articles_processed, older_than_cutoff = collect_articles(source, driver, url, date_base, date_cutoff)
             article_list.extend(articles_processed)
+
+    driver.quit()
+    return article_list
+
+def scrape_articles_content(articles: List[ArticleBase]) -> List[Article]:
+    driver = init_driver()
+
+    article_list = []
+
+    DefaultLogger().get_logger().info(f"Scrapping contents from {len(articles)} articles")
+    for article in articles:
+        try:
+            driver.get(str(article.Link))
+            scroll_down(driver)
+        except WebDriverException as e:
+            DefaultLogger().get_logger().error(f"Error loading {str(article.Link)}: No content was extracted.", exc_info=True)
+            continue
+        
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        article_content = process_articles_content(article, soup)
+        article_list.append(article_content)
 
     driver.quit()
     return article_list

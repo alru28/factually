@@ -21,6 +21,13 @@ sources = {
         'date_format': '%d de %B de %Y',
         'button_selector': None,
     },
+    'wsj': {
+        'base_url': 'https://www.wsj.com',
+        'url': 'https://www.wsj.com/news/archive/{year}/{month}/{day}?page={page}',
+        'article_selector': 'WSJTheme--overflow-hidden--qJmlzHgO',
+        'date_format': 'None',
+        'button_selector': None,
+    },
     'arstechnica': {
         'base_url': 'https://arstechnica.com',
         'url': 'https://arstechnica.com/{year}/page/{page}',
