@@ -8,6 +8,13 @@ def init_driver():
     """Inits and returns a headless Selenium WebDriver"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,
+        "profile.managed_default_content_settings.stylesheets": 2
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
+    
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=chrome_options)
 

@@ -1,4 +1,4 @@
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 class SafeDict(dict):
     def __missing__(self, key):
@@ -11,3 +11,7 @@ def fix_links(url_base: str, url_relative: str) -> str:
     if not url_relative.startswith(('http', 'www')):
         return urljoin(url_base, url_relative)
     return url_relative
+
+def is_valid_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.scheme in ('http', 'https') and bool(parsed.netloc)

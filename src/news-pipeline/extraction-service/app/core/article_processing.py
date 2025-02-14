@@ -1,5 +1,5 @@
 from app.models import ArticleBase, Article, Reference
-from app.utils.url_helpers import fix_links
+from app.utils.url_helpers import fix_links, is_valid_url
 from app.utils.date_formatter import format_date_str
 from app.utils.logger import DefaultLogger
 import re
@@ -91,7 +91,7 @@ def process_articles_content(article: ArticleBase, article_soup) -> Article:
 
     for p in article_soup.find_all('p'):
         text = p.get_text(strip=True)
-        if text and len(text) > 40:
+        if text and len(text) > 50:
             paragraphs.append(text)
 
             for a in p.find_all('a'):
@@ -100,16 +100,20 @@ def process_articles_content(article: ArticleBase, article_soup) -> Article:
                     continue
                 
                 full_url = fix_links(str(article.Source), href)
-                link_text = a.get_text(strip=True) or ""
-                
-                if full_url not in seen_links and link_text != "":
-                    seen_links.add(full_url)
-                    references.append(
-                        Reference(Text=link_text, Link=full_url)
-                    )
+
+                if is_valid_url(full_url):
+                    link_text = a.get_text(strip=True) or ""
+                    
+                    if full_url not in seen_links and link_text != "":
+                        seen_links.add(full_url)
+                        references.append(
+                            Reference(Text=link_text, Link=full_url)
+                        )
+                else:
+                    continue
 
     return Article(
-        **article.dict(),
+        **article.model_dump(),
         Paragraphs=paragraphs,
         References=references
     )

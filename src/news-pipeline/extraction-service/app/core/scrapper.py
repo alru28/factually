@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from typing import List
 from bs4 import BeautifulSoup
 import requests
+from requests.auth import HTTPBasicAuth
 from requests.exceptions import RequestException
 import time
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, WebDriverException
@@ -100,7 +101,7 @@ def scrape_articles_base(source: str, date_base: date, date_cutoff: date) -> Lis
     driver.quit()
     return article_list
 
-def scrape_articles_content(articles: List[ArticleBase]) -> List[Article]:
+def scrape_articles_content_selenium(articles: List[ArticleBase]) -> List[Article]:
     driver = init_driver()
 
     article_list = []
@@ -126,10 +127,16 @@ def scrape_articles_content_requests(articles: List[ArticleBase]) -> List[Articl
     article_list = []
     DefaultLogger().get_logger().info(f"Scraping contents from {len(articles)} articles")
     
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    })
+
     for article in articles:
         try:
-            response = requests.get(str(article.Link), timeout=3)
-            response.raise_for_status()  # raise an error for bad status codes
+            response = requests.get(str(article.Link), timeout=3, auth=HTTPBasicAuth('user', 'pass'))
+            response.raise_for_status()
         except RequestException as e:
             DefaultLogger().get_logger().error(
                 f"Error loading {str(article.Link)}: No content was extracted.",
@@ -141,4 +148,52 @@ def scrape_articles_content_requests(articles: List[ArticleBase]) -> List[Articl
         article_content = process_articles_content(article, soup)
         article_list.append(article_content)
 
+    return article_list
+
+def scrape_articles_content(articles: List[ArticleBase]) -> List[Article]:
+    article_list = []
+    DefaultLogger().get_logger().info(f"Scraping contents from {len(articles)} articles")
+    
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    })
+
+    driver = None
+
+    for article in articles:
+        use_selenium = False
+        
+        try:
+            response = session.get(str(article.Link), timeout=3, auth=HTTPBasicAuth('user', 'pass'))
+            response.raise_for_status()
+        except RequestException as e:
+            status_code = e.response.status_code if e.response is not None else "N/A"
+            DefaultLogger().get_logger().warning(
+                f"Requests failed for {article.Link} with status code {status_code}. Falling back to Selenium."
+            )
+            use_selenium = True
+        
+        if not use_selenium:
+            soup = BeautifulSoup(response.text, 'html.parser')
+        else:
+            if driver is None:
+                driver = init_driver()
+            try:
+                driver.get(str(article.Link))
+                scroll_down(driver)
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+            except WebDriverException as e:
+                DefaultLogger().get_logger().error(
+                    f"Error loading {article.Link} with Selenium: {str(e)}. No content was extracted."
+                )
+                continue
+
+        article_content = process_articles_content(article, soup)
+        article_list.append(article_content)
+
+    if driver is not None:
+        driver.quit()
+    
     return article_list
