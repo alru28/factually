@@ -7,16 +7,18 @@ def format_date_str(text_date: str, format: str) -> datetime.date:
     # REMOVE UPTADED OR BLANK STARTING TEXT
     text_date = re.sub(r'^updated\s*', '', text_date, flags=re.IGNORECASE).strip()
     
-    # 1. SPECIFIED FORMAT
-    try:
-        parsed_date = datetime.strptime(text_date, format).date()
+   # 1. TEST SPECIFIC FORMAT IN ENG/ESP
+    for loc in ["en_US.UTF-8", "es_ES.UTF-8"]:
+        try:
+            locale.setlocale(locale.LC_TIME, loc)
+            parsed_date = datetime.strptime(text_date, format).date()
 
-        if parsed_date.year == 1900:
+            if parsed_date.year == 1900:
                 parsed_date = parsed_date.replace(year=datetime.now().year)
 
-        return parsed_date
-    except ValueError:
-        pass
+            return parsed_date
+        except (ValueError, locale.Error):
+            continue
     
     # 2. TEST COMMON FORMATS
     formats_alternative = [
@@ -67,19 +69,6 @@ def format_date_str(text_date: str, format: str) -> datetime.date:
         except Exception as e:
             DefaultLogger().get_logger().error(f"Error processing relative date: {e}")
 
-    # 4. TEST SPECIFIC FORMAT IN ENG/ESP
-    for loc in ["en_US.utf8", "es_ES.utf8"]:
-        try:
-            locale.setlocale(locale.LC_TIME, loc)
-            parsed_date = datetime.strptime(text_date, format).date()
-
-            if parsed_date.year == 1900:
-                parsed_date = parsed_date.replace(year=datetime.now().year)
-
-            return parsed_date
-        except (ValueError, locale.Error):
-            continue
-
-    # 5. FALLBACK
-    DefaultLogger().get_logger().warning(f"Date not parsed: {text_date}. Using fallback")
+    # 4. FALLBACK
+    DefaultLogger().get_logger().warning(f"Date not parsed: {text_date}. Format given {format}. Using fallback")
     return datetime.today().date()

@@ -67,7 +67,7 @@ def process_articles_base(article_soup, source, date_base, date_cutoff, url) -> 
             continue
 
         if date_article > date_base:
-            DefaultLogger().get_logger().debug("Article date is newer than base date")
+            DefaultLogger().get_logger().debug(f"Article date is newer than base date")
             continue
             
         if date_article < date_cutoff:

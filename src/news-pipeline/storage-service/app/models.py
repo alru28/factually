@@ -1,19 +1,6 @@
 from typing import List, Optional
-from datetime import date, datetime, timedelta
+from datetime import date
 from pydantic import BaseModel, Field, HttpUrl, field_validator
-
-class ScrapeRequest(BaseModel):
-    date_base: str = Field(default_factory=lambda: date.today().isoformat(), description="Base date for scraping (inclusive). Format: DD-MM-YYYY")
-    date_cutoff: str = Field(default_factory=lambda: (date.today() - timedelta(days=1)).isoformat(), description="Cutoff date for scraping (exclusive). Format: DD-MM-YYYY")
-
-    @field_validator("date_base", "date_cutoff", mode="before")
-    def validate_dates(cls, value):
-        if isinstance(value, date):
-            return value.isoformat()
-        return value
-    
-class SourceScrapeRequest(ScrapeRequest):
-    name: str = Field(..., description="Name of the source to scrape")
 
 class ArticleBase(BaseModel):
     id: Optional[str] = None

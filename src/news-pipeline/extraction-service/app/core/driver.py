@@ -1,13 +1,15 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 def init_driver():
     """Inits and returns a headless Selenium WebDriver"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.binary_location = "/usr/bin/chromium"
 
     prefs = {
         "profile.managed_default_content_settings.images": 2,
@@ -15,7 +17,7 @@ def init_driver():
     }
     chrome_options.add_experimental_option("prefs", prefs)
     
-    service = Service(ChromeDriverManager().install())
+    service = Service(executable_path="/usr/bin/chromedriver")
     return webdriver.Chrome(service=service, options=chrome_options)
 
 def scroll_down(driver, pausa: int = 1):
