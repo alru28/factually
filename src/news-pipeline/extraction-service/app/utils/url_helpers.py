@@ -1,4 +1,5 @@
 from urllib.parse import urljoin, urlparse
+from pydantic import HttpUrl, ValidationError
 
 class SafeDict(dict):
     def __missing__(self, key):
@@ -13,5 +14,8 @@ def fix_links(url_base: str, url_relative: str) -> str:
     return url_relative
 
 def is_valid_url(url: str) -> bool:
-    parsed = urlparse(url)
-    return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
+    try:
+        HttpUrl(url=url)
+        return True
+    except ValidationError as e:
+        return False

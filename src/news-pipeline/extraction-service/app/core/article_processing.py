@@ -43,9 +43,9 @@ def process_articles_base(article_soup, source, date_base, date_cutoff, url) -> 
                         day_extracted = match.group("day")
 
                         date_text = f"{day_extracted}/{month_extracted}/{year_extracted}"
-                        DefaultLogger().get_logger().debug(f"Date extracted from article URL: {date_text}")
+                        DefaultLogger().get_logger().debug(f"Date extracted from archive URL: {date_text}")
                     else:
-                        DefaultLogger().get_logger().warning("Date couldn't be extracted from URL")
+                        DefaultLogger().get_logger().warning("Date couldn't be extracted from archive URL")
                         date_text = "NoDate"
             else:
                     DefaultLogger().get_logger().warning("Date couldn't be found in the article")

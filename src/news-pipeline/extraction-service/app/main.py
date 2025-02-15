@@ -9,6 +9,7 @@ from fastapi.encoders import jsonable_encoder
 
 import httpx
 import os
+import uvicorn
 
 app = FastAPI(title="Extraction Service")
 
@@ -22,6 +23,9 @@ async def scrape_source(scrape_request: SourceScrapeRequest):
     """
     date_base = format_date_str(scrape_request.date_base, "%d-%m-%Y")
     date_cutoff = format_date_str(scrape_request.date_cutoff, "%d-%m-%Y")
+
+    if date_base == date_cutoff:
+        date_cutoff = date_base - timedelta(days=1)
 
     articles = scrape_articles_base(scrape_request.name, date_base, date_cutoff)
     
@@ -48,6 +52,9 @@ async def scrape_all(scrape_request: ScrapeRequest):
     """
     date_base = format_date_str(scrape_request.date_base, "%d-%m-%Y")
     date_cutoff = format_date_str(scrape_request.date_cutoff, "%d-%m-%Y")
+
+    if date_base == date_cutoff:
+        date_cutoff = date_base - timedelta(days=1)
 
     async with httpx.AsyncClient() as client:
         sources_resp = await client.get(f"{STORAGE_SERVICE_URL}/sources/")
@@ -82,5 +89,4 @@ async def scrape_all(scrape_request: ScrapeRequest):
     return {"message": "Scraped and inserted articles for all sources"}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
