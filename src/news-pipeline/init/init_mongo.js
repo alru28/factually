@@ -32,7 +32,7 @@ var sources = {
       base_url: "https://www.wsj.com",
       url: "https://www.wsj.com/news/archive/{year}/{month}/{day}?page={page}",
       article_selector: "WSJTheme--overflow-hidden--qJmlzHgO",
-      date_format: null,
+      date_format: "%d/%b/%Y",
       button_selector: null
   },
   "arstechnica": {

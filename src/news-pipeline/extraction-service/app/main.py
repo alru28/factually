@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 from app.core.scrapper import scrape_articles_base, scrape_articles_content
-from app.utils.storage import store_articles_to_json
 from app.utils.date_formatter import format_date_str
-from app.config import sources
 from app.models import ScrapeRequest, SourceScrapeRequest
+from app.utils.logger import DefaultLogger
 from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 
@@ -11,37 +10,73 @@ import httpx
 import os
 import uvicorn
 
+logger = DefaultLogger("ExtractionService").get_logger()
+
 app = FastAPI(title="Extraction Service")
 
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 
+def secure_date_range(date_base_str: str, date_cutoff_str: str):
+    date_base = format_date_str(date_base_str, "%d-%m-%Y")
+    date_cutoff = format_date_str(date_cutoff_str, "%d-%m-%Y")
+    if date_base == date_cutoff:
+        date_cutoff = date_base - timedelta(days=1)
+    return date_base, date_cutoff
+
 @app.post("/scrape/source", response_model=dict)
 async def scrape_source(scrape_request: SourceScrapeRequest):
     """
-    Scrapes a specific source (provided in the request) from date_base to date_cutoff.
-    The scraped articles are then inserted into the storage service via its bulk API.
+    Scrapes a specific source (provided by name in the request) between date_base and date_cutoff.
+    The full source configuration is retrieved from the storage service API and then passed to the scraper.
+    The scraped articles (with content) are then inserted into the storage service via its bulk API.
     """
-    date_base = format_date_str(scrape_request.date_base, "%d-%m-%Y")
-    date_cutoff = format_date_str(scrape_request.date_cutoff, "%d-%m-%Y")
+    logger.info(f"Received scrape/source request for source: {scrape_request.name}")
+    date_base, date_cutoff = secure_date_range(scrape_request.date_base, scrape_request.date_cutoff)
 
-    if date_base == date_cutoff:
-        date_cutoff = date_base - timedelta(days=1)
+    async with httpx.AsyncClient() as client:
+        logger.debug("Retrieving sources from storage service")
+        sources_resp = await client.get(f"{STORAGE_SERVICE_URL}/sources/")
+        if sources_resp.status_code != 200:
+            logger.error("Failed to retrieve sources from storage service")
+            raise HTTPException(
+                status_code=500,
+                detail="Error retrieving sources from storage service."
+            )
+        sources_list = sources_resp.json()
+        logger.debug(f"Retrieved {len(sources_list)} sources")
 
-    articles = scrape_articles_base(scrape_request.name, date_base, date_cutoff)
+    source_dict = next(
+        (src for src in sources_list if src.get("name", "").lower() == scrape_request.name.lower()),
+        None
+    )
+    if not source_dict:
+        logger.error(f"Source '{scrape_request.name}' not found in storage service")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Source '{scrape_request.name}' not found in storage service."
+        )
+    logger.info(f"Found source configuration for {scrape_request.name}: {source_dict}")
+    
+    articles = scrape_articles_base(source_dict, date_base, date_cutoff)
+    logger.debug(f"Scraped {len(articles)} base articles")
     
     articles_content = scrape_articles_content(articles)
+    logger.debug(f"Scraped content for {len(articles_content)} articles")
 
     async with httpx.AsyncClient() as client:
         payload = jsonable_encoder(articles_content)
+        logger.debug("Posting scraped article content to storage service")
         content_resp = await client.post(
             f"{STORAGE_SERVICE_URL}/articles/bulk", json=payload
         )
         if content_resp.status_code != 201:
+            logger.error("Error inserting content articles for source")
             raise HTTPException(
                 status_code=500,
                 detail="Error inserting content articles for source."
             )
 
+    logger.info(f"Scrape and insertion completed for source {scrape_request.name}")
     return {"message": f"Scraped and inserted articles for source {scrape_request.name}"}
 
 @app.post("/scrape/all", response_model=dict)
@@ -50,43 +85,54 @@ async def scrape_all(scrape_request: ScrapeRequest):
     Retrieves all sources from the storage service, scrapes articles for each source
     from date_base to date_cutoff, and then inserts the scraped articles into the storage service.
     """
+    logger.info("Received scrape/all request")
     date_base = format_date_str(scrape_request.date_base, "%d-%m-%Y")
     date_cutoff = format_date_str(scrape_request.date_cutoff, "%d-%m-%Y")
 
     if date_base == date_cutoff:
+        logger.debug("date_base equals date_cutoff; adjusting cutoff by subtracting 1 day")
         date_cutoff = date_base - timedelta(days=1)
 
     async with httpx.AsyncClient() as client:
+        logger.debug("Retrieving sources from storage service for scrape/all")
         sources_resp = await client.get(f"{STORAGE_SERVICE_URL}/sources/")
         if sources_resp.status_code != 200:
+            logger.error("Error retrieving sources from storage service for scrape/all")
             raise HTTPException(
                 status_code=500,
                 detail="Error retrieving sources from storage service."
             )
-        sources = sources_resp.json()
+        sources_list = sources_resp.json()
+        logger.debug(f"Retrieved {len(sources_list)} sources for scrape/all")
 
     all_articles = []
-    
-    for source in sources:
-        source_name = source.get("name")
-        if source_name:
-            articles = scrape_articles_base(source_name, date_base, date_cutoff)
+    for source in sources_list:
+        if source.get("name"):
+            logger.info(f"Scraping articles for source: {source.get('name')}")
+            articles = scrape_articles_base(source, date_base, date_cutoff)
+            logger.debug(f"Scraped {len(articles)} articles for source {source.get('name')}")
             all_articles.extend(articles)
 
+    logger.info("Scraping content for all scraped articles")
     articles_content = scrape_articles_content(all_articles)
+    logger.debug(f"Scraped content for {len(articles_content)} articles")
 
     async with httpx.AsyncClient() as client:
         payload = jsonable_encoder(articles_content)
+        logger.debug("Posting scraped article content for all sources to storage service")
         content_resp = await client.post(
             f"{STORAGE_SERVICE_URL}/articles/bulk", json=payload
         )
         if content_resp.status_code != 201:
+            logger.error("Error inserting content articles for all sources")
             raise HTTPException(
                 status_code=500,
                 detail="Error inserting content articles for all sources."
             )
 
+    logger.info("Scrape and insertion completed for all sources")
     return {"message": "Scraped and inserted articles for all sources"}
 
 if __name__ == "__main__":
+    logger.info("Starting Extraction Service")
     uvicorn.run("main:app", host="0.0.0.0", port=8000)

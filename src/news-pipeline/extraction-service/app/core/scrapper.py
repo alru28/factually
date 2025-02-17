@@ -14,9 +14,8 @@ from app.utils.logger import DefaultLogger
 from app.core.article_processing import process_articles_base, process_articles_content
 from app.core.driver import scroll_down, init_driver
 from app.models import ArticleBase, Article
-from app.config import sources
 
-def obtain_urls(source: str, date_base: date, date_cutoff: date):
+def obtain_urls(source: dict, date_base: date, date_cutoff: date):
     urls = set()
     current_date = date_base
     while current_date > date_cutoff:
@@ -25,7 +24,7 @@ def obtain_urls(source: str, date_base: date, date_cutoff: date):
         current_date -= timedelta(days=1)
     return urls
 
-def collect_articles(source: str, driver, url: str, date_base: date, date_cutoff: date):
+def collect_articles(source: dict, driver, url: str, date_base: date, date_cutoff: date):
     DefaultLogger().get_logger().debug(f"Processing: {url}")
 
     try:
@@ -36,22 +35,22 @@ def collect_articles(source: str, driver, url: str, date_base: date, date_cutoff
         return None
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
-    articles = soup.find_all('div', class_=sources[source]['article_selector'])
+    articles = soup.find_all('div', class_=source['article_selector'])
 
-    articles_processed, older_than_cutoff = process_articles_base(articles, sources[source], date_base, date_cutoff, url)
+    articles_processed, older_than_cutoff = process_articles_base(articles, source, date_base, date_cutoff, url)
 
     return articles_processed, older_than_cutoff
 
-def scrape_articles_base(source: str, date_base: date, date_cutoff: date) -> List[ArticleBase]:
+def scrape_articles_base(source: dict, date_base: date, date_cutoff: date) -> List[ArticleBase]:
     driver = init_driver()
 
     article_list = []
 
-    urls = obtain_urls(sources[source], date_base, date_cutoff)
-    DefaultLogger().get_logger().info(f"Collecting article links from {source}")
+    urls = obtain_urls(source, date_base, date_cutoff)
+    DefaultLogger().get_logger().info(f"Collecting article links from {source['name']}")
     for url in urls:
         # IF THERE'S PAGE IN TEMPLATE -> PAGINATION
-        if '{page}' in sources[source]['url']:
+        if '{page}' in source['url']:
             page_number = 1
             while True:
                 url_params = {
@@ -70,7 +69,7 @@ def scrape_articles_base(source: str, date_base: date, date_cutoff: date) -> Lis
                 page_number += 1
 
         # IF THERE'S BUTTON SELECTOR -> LOAD MORE PATTERN
-        elif sources[source]['button_selector']:
+        elif source['button_selector']:
             while True:
                 # This list holds the articles so that no duplicates appear when including the newly loaded ones
                 load_more_article_list = []
@@ -82,7 +81,7 @@ def scrape_articles_base(source: str, date_base: date, date_cutoff: date) -> Lis
                 else:
                     try:
                         load_more_btn = WebDriverWait(driver, 5).until(
-                            EC.element_to_be_clickable((By.CLASS_NAME, sources[source]['button_selector']))
+                            EC.element_to_be_clickable((By.CLASS_NAME, source['button_selector']))
                         )
                         driver.execute_script("arguments[0].scrollIntoView();", load_more_btn)
                         load_more_btn.click()
