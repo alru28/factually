@@ -89,7 +89,13 @@ def process_articles_content(article: ArticleBase, article_soup) -> Article:
     references = []
     seen_links = set()
 
-    for p in article_soup.find_all('p'):
+    article_container = article_soup.find('main')
+    if article_container is None:
+        article_container = article_soup.find('article')
+    if article_container is None:
+        article_container = article_soup
+
+    for p in article_container.find_all('p'):
         text = p.get_text(strip=True)
         if text and len(text) > 50:
             paragraphs.append(text)

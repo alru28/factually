@@ -4,7 +4,7 @@ from typing import List
 from app.models import Article, Source
 from app.db.database import db
 import uvicorn
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, BulkWriteError
 from bson import ObjectId
 from app.utils.logger import DefaultLogger
 
@@ -48,6 +48,26 @@ async def create_article(article: Article):
     logger.info("Article created successfully")
     return article_helper(created_article)
 
+# @app.post("/articles/bulk", response_model=List[Article], status_code=201)
+# async def create_articles_bulk(articles: List[Article]):
+#     logger.info("Received bulk articles creation request")
+#     articles_data = [jsonable_encoder(article) for article in articles]
+#     try:
+#         result = await db["articles"].insert_many(articles_data, ordered=False)
+#         logger.debug(f"Bulk inserted {len(result.inserted_ids)} articles")
+#     except DuplicateKeyError:
+#         logger.error("Duplicate key error in bulk article insertion", exc_info=True)
+#         raise HTTPException(status_code=400, detail="One or more articles already exist")
+#     except BulkWriteError as bwe:
+#         logger.error("Bulk write error occurred", exc_info=True)
+#         raise HTTPException(status_code=400, detail="One or more articles already exist")
+#     created_articles = []
+#     for _id in result.inserted_ids:
+#         article_doc = await db["articles"].find_one({"_id": _id})
+#         created_articles.append(article_helper(article_doc))
+#     logger.info("Bulk article insertion completed successfully")
+#     return created_articles
+
 @app.post("/articles/bulk", response_model=List[Article], status_code=201)
 async def create_articles_bulk(articles: List[Article]):
     logger.info("Received bulk articles creation request")
@@ -58,12 +78,32 @@ async def create_articles_bulk(articles: List[Article]):
     except DuplicateKeyError:
         logger.error("Duplicate key error in bulk article insertion", exc_info=True)
         raise HTTPException(status_code=400, detail="One or more articles already exist")
+    except BulkWriteError as bwe:
+        # GET THE DUPLICATED ONES, ERROR LOG THEM, AND MIMIC GOOD RESULT WITH THE REST
+        duplicate_ids = [
+            error["op"].get("_id")
+            for error in bwe.details.get("writeErrors", [])
+            if error.get("code") == 11000
+        ]
+        logger.error(
+            f"Bulk write error occurred: {len(duplicate_ids)} duplicate articles: {duplicate_ids}",
+            exc_info=False
+        )
+
+        inserted_ids = list(bwe.details.get("insertedIds", {}).values())
+
+        class DummyResult:
+            pass
+        result = DummyResult()
+        result.inserted_ids = inserted_ids
+
     created_articles = []
     for _id in result.inserted_ids:
         article_doc = await db["articles"].find_one({"_id": _id})
         created_articles.append(article_helper(article_doc))
-    logger.info("Bulk article insertion completed successfully")
+    logger.info(f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles")
     return created_articles
+
 
 @app.get("/articles/", response_model=List[Article])
 async def list_articles():

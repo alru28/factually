@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from app.utils.logger import DefaultLogger
 
 def format_date_str(text_date: str, format: str) -> datetime.date:
-    # REMOVE UPTADED OR BLANK STARTING TEXT
-    text_date = re.sub(r'^updated\s*', '', text_date, flags=re.IGNORECASE).strip()
+    # REMOVE UPTADED OR PUBLISHED OR BLANK STARTING TEXT
+    text_date = re.sub(r'^(updated|published)\s+', '', text_date, flags=re.IGNORECASE).strip()
     
    # 1. TEST SPECIFIC FORMAT IN ENG/ESP
     for loc in ["en_US.UTF-8", "es_ES.UTF-8"]:

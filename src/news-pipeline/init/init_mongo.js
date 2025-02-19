@@ -42,11 +42,11 @@ var sources = {
       date_format: "%m/%d/%Y",
       button_selector: "post-navigation-link"
   },
-  "xataka": {
-      base_url: "https://www.xataka.com",
-      url: "https://www.xataka.com/archivos/{year}/{month}",
-      article_selector: null,
-      date_format: "%d de %B de %Y",
+  "gizmodo": {
+      base_url: "https://gizmodo.com",
+      url: "https://gizmodo.com/latest/page/{page}",
+      article_selector: "flex-1 self-center w-full",
+      date_format: "%B %d, %Y",
       button_selector: null
   },
   "theregister": {
