@@ -12,6 +12,7 @@ logger = DefaultLogger("StorageService").get_logger()
 
 app = FastAPI(title="Storage Service", openapi_url="/openapi.json")
 
+
 async def create_indexes():
     """
     Creates unique indexes for the articles and sources collections in the database.
@@ -23,6 +24,7 @@ async def create_indexes():
     await db["articles"].create_index("Link", unique=True)
     await db["sources"].create_index("base_url", unique=True)
 
+
 @app.on_event("startup")
 async def startup_event():
     """
@@ -32,6 +34,7 @@ async def startup_event():
     """
     logger.info("Startup event: Initializing indexes")
     await create_indexes()
+
 
 @app.post("/articles/", response_model=Article, status_code=201)
 async def create_article(article: Article):
@@ -57,10 +60,13 @@ async def create_article(article: Article):
         logger.debug(f"Inserted article with _id: {new_article.inserted_id}")
     except DuplicateKeyError:
         logger.error("Duplicate article insertion attempted", exc_info=True)
-        raise HTTPException(status_code=400, detail="Article with this Link already exists")
+        raise HTTPException(
+            status_code=400, detail="Article with this Link already exists"
+        )
     created_article = await db["articles"].find_one({"_id": new_article.inserted_id})
     logger.info("Article created successfully")
     return article_helper(created_article)
+
 
 @app.post("/articles/bulk", response_model=List[Article], status_code=201)
 async def create_articles_bulk(articles: List[Article]):
@@ -87,7 +93,9 @@ async def create_articles_bulk(articles: List[Article]):
         logger.debug(f"Bulk inserted {len(result.inserted_ids)} articles")
     except DuplicateKeyError:
         logger.error("Duplicate key error in bulk article insertion", exc_info=True)
-        raise HTTPException(status_code=400, detail="One or more articles already exist")
+        raise HTTPException(
+            status_code=400, detail="One or more articles already exist"
+        )
     except BulkWriteError as bwe:
         # GET THE DUPLICATED ONES, ERROR LOG THEM, AND MIMIC GOOD RESULT WITH THE REST
         duplicate_ids = [
@@ -97,13 +105,14 @@ async def create_articles_bulk(articles: List[Article]):
         ]
         logger.error(
             f"Bulk write error occurred: {len(duplicate_ids)} duplicate articles: {duplicate_ids}",
-            exc_info=False
+            exc_info=False,
         )
 
         inserted_ids = list(bwe.details.get("insertedIds", {}).values())
 
         class DummyResult:
             pass
+
         result = DummyResult()
         result.inserted_ids = inserted_ids
 
@@ -111,8 +120,11 @@ async def create_articles_bulk(articles: List[Article]):
     for _id in result.inserted_ids:
         article_doc = await db["articles"].find_one({"_id": _id})
         created_articles.append(article_helper(article_doc))
-    logger.info(f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles")
+    logger.info(
+        f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles"
+    )
     return created_articles
+
 
 @app.get("/articles/", response_model=List[Article])
 async def list_articles():
@@ -130,6 +142,7 @@ async def list_articles():
         articles.append(article_helper(article))
     logger.debug(f"Retrieved {len(articles)} articles")
     return articles
+
 
 @app.get("/articles/{article_id}", response_model=Article)
 async def get_article(article_id: str):
@@ -153,6 +166,7 @@ async def get_article(article_id: str):
     logger.debug(f"Article retrieved: {article}")
     return article_helper(article)
 
+
 @app.put("/articles/{article_id}", response_model=Article)
 async def update_article(article_id: str, article: Article):
     """
@@ -173,7 +187,9 @@ async def update_article(article_id: str, article: Article):
     """
     logger.info(f"Received request to update article with id: {article_id}")
     article_data = jsonable_encoder(article)
-    result = await db["articles"].update_one({"_id": ObjectId(article_id)}, {"$set": article_data})
+    result = await db["articles"].update_one(
+        {"_id": ObjectId(article_id)}, {"$set": article_data}
+    )
     if result.modified_count == 1:
         updated_article = await db["articles"].find_one({"_id": ObjectId(article_id)})
         logger.info(f"Article with id {article_id} updated successfully")
@@ -181,6 +197,7 @@ async def update_article(article_id: str, article: Article):
     else:
         logger.error(f"Article with id {article_id} not found for update")
         raise HTTPException(status_code=404, detail="Article not found")
+
 
 @app.delete("/articles/{article_id}", status_code=204)
 async def delete_article(article_id: str):
@@ -204,6 +221,7 @@ async def delete_article(article_id: str):
     else:
         logger.error(f"Article with id {article_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Article not found")
+
 
 @app.post("/sources/", response_model=Source, status_code=201)
 async def create_source(source: Source):
@@ -229,10 +247,13 @@ async def create_source(source: Source):
         logger.debug(f"Inserted source with _id: {new_source.inserted_id}")
     except DuplicateKeyError:
         logger.error("Duplicate source insertion attempted", exc_info=True)
-        raise HTTPException(status_code=400, detail="Source with this base_url already exists")
+        raise HTTPException(
+            status_code=400, detail="Source with this base_url already exists"
+        )
     created_source = await db["sources"].find_one({"_id": new_source.inserted_id})
     logger.info("Source created successfully")
     return source_helper(created_source)
+
 
 @app.get("/sources/", response_model=List[Source])
 async def list_sources():
@@ -250,6 +271,7 @@ async def list_sources():
         sources_list.append(source_helper(source))
     logger.debug(f"Retrieved {len(sources_list)} sources")
     return sources_list
+
 
 @app.get("/sources/{source_id}", response_model=Source)
 async def get_source(source_id: str):
@@ -273,6 +295,7 @@ async def get_source(source_id: str):
     logger.debug(f"Source retrieved: {source['name']}")
     return source_helper(source)
 
+
 @app.put("/sources/{source_id}", response_model=Source)
 async def update_source(source_id: str, source: Source):
     """
@@ -293,7 +316,9 @@ async def update_source(source_id: str, source: Source):
     """
     logger.info(f"Received request to update source with id: {source_id}")
     source_data = jsonable_encoder(source)
-    result = await db["sources"].update_one({"_id": ObjectId(source_id)}, {"$set": source_data})
+    result = await db["sources"].update_one(
+        {"_id": ObjectId(source_id)}, {"$set": source_data}
+    )
     if result.modified_count == 1:
         updated_source = await db["sources"].find_one({"_id": ObjectId(source_id)})
         logger.info(f"Source with id {source_id} updated successfully")
@@ -301,6 +326,7 @@ async def update_source(source_id: str, source: Source):
     else:
         logger.error(f"Source with id {source_id} not found for update")
         raise HTTPException(status_code=404, detail="Source not found")
+
 
 @app.delete("/sources/{source_id}", status_code=204)
 async def delete_source(source_id: str):
@@ -324,6 +350,7 @@ async def delete_source(source_id: str):
     else:
         logger.error(f"Source with id {source_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Source not found")
+
 
 if __name__ == "__main__":
     logger.info("Starting Storage Service")

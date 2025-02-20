@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def setup_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
     """
     Configures and returns a logger with the specified name and logging level.
@@ -20,14 +21,15 @@ def setup_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
     if not logger.handlers:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
-        
+
         formatter = logging.Formatter(
-            '[%(asctime)s] - [%(name)s] - [%(levelname)s] - %(message)s'
+            "[%(asctime)s] - [%(name)s] - [%(levelname)s] - %(message)s"
         )
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     return logger
+
 
 class DefaultLogger(object):
     """
@@ -35,6 +37,7 @@ class DefaultLogger(object):
 
     This class ensures that only one logger instance is created and shared across the application.
     """
+
     def __new__(cls, name: str = "StorageService", level: int = logging.DEBUG):
         """
         Creates a new instance of DefaultLogger if one does not exist, otherwise returns the existing instance.
@@ -46,7 +49,7 @@ class DefaultLogger(object):
         Returns:
             DefaultLogger: The singleton instance of DefaultLogger.
         """
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, "instance"):
             cls.instance = super(DefaultLogger, cls).__new__(cls)
             cls.instance.logger = setup_logger(name, level)
         return cls.instance

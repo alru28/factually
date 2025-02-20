@@ -2,6 +2,7 @@ from typing import List, Optional
 from datetime import date, datetime, timedelta
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
+
 class ScrapeRequest(BaseModel):
     """
     Request model for scraping articles.
@@ -10,8 +11,15 @@ class ScrapeRequest(BaseModel):
         date_base (str): Base date for scraping (inclusive). Format: DD-MM-YYYY.
         date_cutoff (str): Cutoff date for scraping (exclusive). Format: DD-MM-YYYY.
     """
-    date_base: str = Field(default_factory=lambda: date.today().isoformat(), description="Base date for scraping (inclusive). Format: DD-MM-YYYY")
-    date_cutoff: str = Field(default_factory=lambda: (date.today() - timedelta(days=1)).isoformat(), description="Cutoff date for scraping (exclusive). Format: DD-MM-YYYY")
+
+    date_base: str = Field(
+        default_factory=lambda: date.today().isoformat(),
+        description="Base date for scraping (inclusive). Format: DD-MM-YYYY",
+    )
+    date_cutoff: str = Field(
+        default_factory=lambda: (date.today() - timedelta(days=1)).isoformat(),
+        description="Cutoff date for scraping (exclusive). Format: DD-MM-YYYY",
+    )
 
     @field_validator("date_base", "date_cutoff", mode="before")
     def validate_dates(cls, value):
@@ -27,7 +35,8 @@ class ScrapeRequest(BaseModel):
         if isinstance(value, date):
             return value.isoformat()
         return value
-    
+
+
 class SourceScrapeRequest(ScrapeRequest):
     """
     Extended scraping request model that includes the name of the source.
@@ -35,7 +44,9 @@ class SourceScrapeRequest(ScrapeRequest):
     Attributes:
         name (str): Name of the source to scrape.
     """
+
     name: str = Field(..., description="Name of the source to scrape")
+
 
 class ArticleBase(BaseModel):
     """
@@ -48,9 +59,13 @@ class ArticleBase(BaseModel):
         Link (HttpUrl): URL link to the article.
         Source (HttpUrl): URL of the article source.
     """
+
     id: Optional[str] = None
     Title: str = Field(default="DefaultTitle", description="Title of the article")
-    Date: str = Field(default_factory=lambda: date.today().isoformat(), description="Date of publication of the article")
+    Date: str = Field(
+        default_factory=lambda: date.today().isoformat(),
+        description="Date of publication of the article",
+    )
     Link: HttpUrl
     Source: HttpUrl
 
@@ -69,6 +84,7 @@ class ArticleBase(BaseModel):
             return value.isoformat()
         return value
 
+
 class Reference(BaseModel):
     """
     Model representing a reference within an article.
@@ -77,8 +93,10 @@ class Reference(BaseModel):
         Text (str): The reference text.
         Link (HttpUrl): The URL link of the reference.
     """
+
     Text: str
     Link: HttpUrl
+
 
 class Article(ArticleBase):
     """
@@ -88,8 +106,15 @@ class Article(ArticleBase):
         Paragraphs (Optional[List[str]]): List of text paragraphs forming the article.
         References (Optional[List[Reference]]): List of references included within the article.
     """
-    Paragraphs: Optional[List[str]] = Field(default_factory=list, description="List of chunks of text forming the article")
-    References: Optional[List[Reference]] = Field(default_factory=list, description="List of references included within the text of the article")
+
+    Paragraphs: Optional[List[str]] = Field(
+        default_factory=list, description="List of chunks of text forming the article"
+    )
+    References: Optional[List[Reference]] = Field(
+        default_factory=list,
+        description="List of references included within the text of the article",
+    )
+
 
 class Source(BaseModel):
     """
@@ -104,10 +129,15 @@ class Source(BaseModel):
         date_format (Optional[str]): Expected date format for date extraction.
         button_selector (Optional[str]): CSS selector for navigation button, if any.
     """
+
     id: Optional[str] = None
-    name: str  = Field(..., description="Unique name of the source")
+    name: str = Field(..., description="Unique name of the source")
     base_url: HttpUrl
     url: str = Field(..., description="URL pattern for scraping")
-    article_selector: Optional[str] = Field(None, description="CSS selector to locate articles")
+    article_selector: Optional[str] = Field(
+        None, description="CSS selector to locate articles"
+    )
     date_format: Optional[str] = Field(None, description="Expected date format")
-    button_selector: Optional[str] = Field(None, description="CSS selector for navigation button, if any")
+    button_selector: Optional[str] = Field(
+        None, description="CSS selector for navigation button, if any"
+    )

@@ -29,11 +29,6 @@ jobs:
           pip install -r requirements.txt
           pip install pytest coverage flake8 black
 
-      # - name: Run Flake8 linting for ${{ matrix.service }}
-      #   run: |
-      #     cd src/news-pipeline/${{ matrix.service }}
-      #     flake8 app
-
       - name: Run Black formatting check for ${{ matrix.service }}
         run: |
           cd src/news-pipeline/${{ matrix.service }}

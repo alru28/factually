@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
+
 def init_driver():
     """
     Initializes and returns a headless Selenium WebDriver for web scraping.
@@ -21,12 +22,13 @@ def init_driver():
 
     prefs = {
         "profile.managed_default_content_settings.images": 2,
-        "profile.managed_default_content_settings.stylesheets": 2
+        "profile.managed_default_content_settings.stylesheets": 2,
     }
     chrome_options.add_experimental_option("prefs", prefs)
-    
+
     service = Service(executable_path="/usr/bin/chromedriver")
     return webdriver.Chrome(service=service, options=chrome_options)
+
 
 def scroll_down(driver, pausa: int = 1):
     """

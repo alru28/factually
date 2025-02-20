@@ -4,6 +4,7 @@ from app.utils.logger import DefaultLogger
 import json
 import csv
 
+
 def str_encoder(obj):
     """
     Encodes an object into a string.
@@ -25,6 +26,7 @@ def str_encoder(obj):
     except Exception:
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
+
 def store_articles_to_json(articles: List[Article], filename="articles.json"):
     """
     Stores a list of articles into a JSON file.
@@ -37,8 +39,10 @@ def store_articles_to_json(articles: List[Article], filename="articles.json"):
         filename (str, optional): The filename to store the articles in. Default is "articles.json".
     """
     articles_dict = [article.model_dump() for article in articles]
-    
+
     with open(filename, "w", encoding="utf-8") as json_file:
-        json.dump(articles_dict, json_file, default=str_encoder, ensure_ascii=False, indent=4)
-    
+        json.dump(
+            articles_dict, json_file, default=str_encoder, ensure_ascii=False, indent=4
+        )
+
     DefaultLogger().get_logger().info(f"Stored {len(articles)} articles in {filename}")
