@@ -17,7 +17,7 @@ def test_article_helper():
     article = article_helper(dummy_article.copy())
     assert isinstance(article, Article)
     assert article.Title == "Test Article"
-    assert "id" in article.dict()
+    assert "id" in article.model_dump()
 
 
 def test_source_helper():
@@ -37,4 +37,4 @@ def test_source_helper():
     source = source_helper(dummy_source.copy())
     assert isinstance(source, Source)
     assert source.name == "Test Source"
-    assert "id" in source.dict()
+    assert "id" in source.model_dump()
