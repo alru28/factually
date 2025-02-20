@@ -25,27 +25,27 @@ jobs:
 
       - name: Install dependencies for ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
+          cd src/news-pipeline/${{ matrix.service }}
           pip install -r requirements.txt
           pip install pytest coverage flake8 black
 
       - name: Run Flake8 linting for ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
+          cd src/news-pipeline/${{ matrix.service }}
           flake8 app
 
       - name: Run Black formatting check for ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
+          cd src/news-pipeline/${{ matrix.service }}
           black --check app
 
       - name: Run unit tests for ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
+          cd src/news-pipeline/${{ matrix.service }}
           pytest --maxfail=1 --disable-warnings -q
 
       - name: Generate coverage report for ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
+          cd src/news-pipeline/${{ matrix.service }}
           coverage run -m pytest
           coverage report
