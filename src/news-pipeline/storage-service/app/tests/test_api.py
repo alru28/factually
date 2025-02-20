@@ -43,10 +43,21 @@ class DummyCollection:
         yield copy.deepcopy(dummy_article_data)
 
     async def update_one(self, query, update):
-        class DummyUpdateResult:
-            modified_count = 1
+        if query.get("_id") == dummy_article_data["_id"]:
 
-        return DummyUpdateResult()
+            new_data = update.get("$set", {})
+            dummy_article_data.update(new_data)
+
+            class DummyUpdateResult:
+                modified_count = 1
+
+            return DummyUpdateResult()
+        else:
+
+            class DummyUpdateResult:
+                modified_count = 0
+
+            return DummyUpdateResult()
 
     async def delete_one(self, query):
         class DummyDeleteResult:
