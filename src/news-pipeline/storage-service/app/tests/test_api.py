@@ -26,10 +26,16 @@ dummy_source_data = {
 
 
 class DummyCollection:
+    def __init__(self, collection_name):
+        self.collection_name = collection_name
+
     async def insert_one(self, data):
-        inserted_id = (
-            dummy_source_data["_id"] if "name" in data else dummy_article_data["_id"]
-        )
+        if self.collection_name == "articles":
+            inserted_id = dummy_article_data["_id"]
+        elif self.collection_name == "sources":
+            inserted_id = dummy_source_data["_id"]
+        else:
+            inserted_id = None
 
         class DummyResult:
             pass
@@ -38,31 +44,44 @@ class DummyCollection:
         return DummyResult()
 
     async def find_one(self, query):
-        if query.get("_id") == dummy_article_data["_id"]:
-            return copy.deepcopy(dummy_article_data)
-        if query.get("_id") == dummy_source_data["_id"]:
-            return copy.deepcopy(dummy_source_data)
+        if self.collection_name == "articles":
+            if query.get("_id") == dummy_article_data["_id"]:
+                return copy.deepcopy(dummy_article_data)
+        elif self.collection_name == "sources":
+            if query.get("_id") == dummy_source_data["_id"]:
+                return copy.deepcopy(dummy_source_data)
         return None
 
     async def find(self, *args, **kwargs):
-        yield copy.deepcopy(dummy_article_data)
+        if self.collection_name == "articles":
+            yield copy.deepcopy(dummy_article_data)
+        elif self.collection_name == "sources":
+            yield copy.deepcopy(dummy_source_data)
 
     async def update_one(self, query, update):
-        if query.get("_id") == dummy_article_data["_id"]:
+        if self.collection_name == "articles":
+            if query.get("_id") == dummy_article_data["_id"]:
+                new_data = update.get("$set", {})
+                dummy_article_data.update(new_data)
 
-            new_data = update.get("$set", {})
-            dummy_article_data.update(new_data)
+                class DummyUpdateResult:
+                    modified_count = 1
 
-            class DummyUpdateResult:
-                modified_count = 1
+                return DummyUpdateResult()
+        elif self.collection_name == "sources":
+            if query.get("_id") == dummy_source_data["_id"]:
+                new_data = update.get("$set", {})
+                dummy_source_data.update(new_data)
 
-            return DummyUpdateResult()
-        else:
+                class DummyUpdateResult:
+                    modified_count = 1
 
-            class DummyUpdateResult:
-                modified_count = 0
+                return DummyUpdateResult()
 
-            return DummyUpdateResult()
+        class DummyUpdateResult:
+            modified_count = 0
+
+        return DummyUpdateResult()
 
     async def delete_one(self, query):
         class DummyDeleteResult:
@@ -76,7 +95,7 @@ class DummyCollection:
 
 class DummyDB:
     def __getitem__(self, name):
-        return DummyCollection()
+        return DummyCollection(name)
 
 
 dummy_db = DummyDB()

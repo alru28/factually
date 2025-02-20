@@ -113,7 +113,7 @@ def article_helper(article) -> Article:
     """
     article["id"] = str(article["_id"])
     del article["_id"]
-    return Article.parse_obj(article)
+    return Article.model_validate(article)
 
 
 def source_helper(source) -> Source:
@@ -131,4 +131,4 @@ def source_helper(source) -> Source:
     """
     source["id"] = str(source["_id"])
     del source["_id"]
-    return Source.parse_obj(source)
+    return Source.model_validate(source)
