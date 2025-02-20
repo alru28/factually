@@ -1,0 +1,46 @@
+name: Python Unit Tests and Formatting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [extraction-service, storage-service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install test dependencies for ${{ matrix.service }}
+        run: |
+          cd src/${{ matrix.service }}
+          pip install -r requirements.txt
+          pip install pytest coverage flake8 black httpx
+
+      - name: Run Black formatting check for ${{ matrix.service }}
+        run: |
+          cd src/${{ matrix.service }}
+          black --check app
+
+      - name: Run unit tests for ${{ matrix.service }}
+        run: |
+          cd src/${{ matrix.service }}
+          pytest --maxfail=1 --disable-warnings -q
+
+      - name: Generate coverage report for ${{ matrix.service }}
+        run: |
+          cd src/${{ matrix.service }}
+          coverage run -m pytest
+          coverage report
