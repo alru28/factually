@@ -29,6 +29,7 @@ class DummyCollection:
     async def insert_one(self, data):
         class DummyResult:
             inserted_id = dummy_article_data["_id"]
+
         return DummyResult()
 
     async def find_one(self, query):
