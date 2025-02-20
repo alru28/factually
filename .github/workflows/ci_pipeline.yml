@@ -2,7 +2,7 @@ name: Python Unit Tests, Linting, and Formatting
 
 on:
   push:
-    branches: [ main ]
+    branches: [ ci-implementation ]
   pull_request:
     branches: [ main ]
 
