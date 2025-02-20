@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from bson import ObjectId
 from app.main import app
 from pymongo.errors import DuplicateKeyError, BulkWriteError
+import copy
 
 # DUMMY DATA
 dummy_article_data = {
@@ -28,18 +29,17 @@ class DummyCollection:
     async def insert_one(self, data):
         class DummyResult:
             inserted_id = dummy_article_data["_id"]
-
         return DummyResult()
 
     async def find_one(self, query):
         if query.get("_id") == dummy_article_data["_id"]:
-            return dummy_article_data
+            return copy.deepcopy(dummy_article_data)
         if query.get("_id") == dummy_source_data["_id"]:
-            return dummy_source_data
+            return copy.deepcopy(dummy_source_data)
         return None
 
     async def find(self, *args, **kwargs):
-        yield dummy_article_data
+        yield copy.deepcopy(dummy_article_data)
 
     async def update_one(self, query, update):
         class DummyUpdateResult:
