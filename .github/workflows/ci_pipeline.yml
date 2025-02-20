@@ -23,11 +23,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies for ${{ matrix.service }}
+      - name: Install test dependencies for ${{ matrix.service }}
         run: |
           cd src/news-pipeline/${{ matrix.service }}
           pip install -r requirements.txt
-          pip install pytest coverage flake8 black
+          pip install pytest coverage flake8 black httpx
 
       - name: Run Black formatting check for ${{ matrix.service }}
         run: |
