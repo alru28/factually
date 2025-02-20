@@ -104,6 +104,20 @@ def process_articles_base(article_soup, source, date_base, date_cutoff, url) -> 
     return valid_articles, older_than_cutoff
 
 def process_articles_content(article: ArticleBase, article_soup) -> Article:
+    """
+    Processes the content of a single article from its HTML soup.
+
+    This function extracts paragraphs and references from the article's HTML content,
+    cleans and validates the extracted links, and returns an Article object containing
+    the full content.
+
+    Args:
+        article (ArticleBase): The base article information.
+        article_soup: BeautifulSoup object of the article's HTML content.
+
+    Returns:
+        Article: An Article object with the content, paragraphs, and references.
+    """
     paragraphs = []
     references = []
     seen_links = set()

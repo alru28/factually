@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from typing import List
-from app.models import Article, Source
+from app.models import Article, Source, article_helper, source_helper
 from app.db.database import db
 import uvicorn
 from pymongo.errors import DuplicateKeyError, BulkWriteError
@@ -13,29 +13,43 @@ logger = DefaultLogger("StorageService").get_logger()
 app = FastAPI(title="Storage Service", openapi_url="/openapi.json")
 
 async def create_indexes():
+    """
+    Creates unique indexes for the articles and sources collections in the database.
+
+    This function ensures that each article's 'Link' field and each source's 'base_url' field is unique,
+    preventing duplicate entries.
+    """
     logger.info("Creating unique indexes for articles and sources")
     await db["articles"].create_index("Link", unique=True)
     await db["sources"].create_index("base_url", unique=True)
 
 @app.on_event("startup")
 async def startup_event():
+    """
+    Startup event handler that initializes the database indexes.
+
+    This function is executed when the application starts up, ensuring that the necessary unique indexes are in place.
+    """
     logger.info("Startup event: Initializing indexes")
     await create_indexes()
 
-# HELPER FUNCTIONS
-def article_helper(article) -> Article:
-    article["id"] = str(article["_id"])
-    del article["_id"]
-    return Article.parse_obj(article)
-
-def source_helper(source) -> Source:
-    source["id"] = str(source["_id"])
-    del source["_id"]
-    return Source.parse_obj(source)
-
-# --------- Article Endpoints ---------
 @app.post("/articles/", response_model=Article, status_code=201)
 async def create_article(article: Article):
+    """
+    Creates a new article in the database.
+
+    Accepts an Article object, inserts it into the articles collection, and returns the created article.
+    If an article with the same Link already exists, an HTTPException is raised.
+
+    Args:
+        article (Article): The Article model to be created.
+
+    Returns:
+        Article: The created Article model.
+
+    Raises:
+        HTTPException: If an article with the given Link already exists.
+    """
     logger.info("Received request to create an article")
     article_data = jsonable_encoder(article)
     try:
@@ -48,28 +62,24 @@ async def create_article(article: Article):
     logger.info("Article created successfully")
     return article_helper(created_article)
 
-# @app.post("/articles/bulk", response_model=List[Article], status_code=201)
-# async def create_articles_bulk(articles: List[Article]):
-#     logger.info("Received bulk articles creation request")
-#     articles_data = [jsonable_encoder(article) for article in articles]
-#     try:
-#         result = await db["articles"].insert_many(articles_data, ordered=False)
-#         logger.debug(f"Bulk inserted {len(result.inserted_ids)} articles")
-#     except DuplicateKeyError:
-#         logger.error("Duplicate key error in bulk article insertion", exc_info=True)
-#         raise HTTPException(status_code=400, detail="One or more articles already exist")
-#     except BulkWriteError as bwe:
-#         logger.error("Bulk write error occurred", exc_info=True)
-#         raise HTTPException(status_code=400, detail="One or more articles already exist")
-#     created_articles = []
-#     for _id in result.inserted_ids:
-#         article_doc = await db["articles"].find_one({"_id": _id})
-#         created_articles.append(article_helper(article_doc))
-#     logger.info("Bulk article insertion completed successfully")
-#     return created_articles
-
 @app.post("/articles/bulk", response_model=List[Article], status_code=201)
 async def create_articles_bulk(articles: List[Article]):
+    """
+    Creates multiple articles in bulk.
+
+    Accepts a list of Article objects, attempts to insert them into the articles collection,
+    and returns the list of successfully inserted articles. In case of duplicate keys, it logs the errors
+    and returns only the articles that were inserted.
+
+    Args:
+        articles (List[Article]): A list of Article models to be inserted.
+
+    Returns:
+        List[Article]: A list of the created Article models.
+
+    Raises:
+        HTTPException: If duplicate articles are detected or a bulk write error occurs.
+    """
     logger.info("Received bulk articles creation request")
     articles_data = [jsonable_encoder(article) for article in articles]
     try:
@@ -104,9 +114,16 @@ async def create_articles_bulk(articles: List[Article]):
     logger.info(f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles")
     return created_articles
 
-
 @app.get("/articles/", response_model=List[Article])
 async def list_articles():
+    """
+    Retrieves a list of all articles from the database.
+
+    Iterates over all documents in the articles collection and returns them as a list of Article models.
+
+    Returns:
+        List[Article]: A list of Article models.
+    """
     logger.info("Received request to list all articles")
     articles = []
     async for article in db["articles"].find():
@@ -116,6 +133,18 @@ async def list_articles():
 
 @app.get("/articles/{article_id}", response_model=Article)
 async def get_article(article_id: str):
+    """
+    Retrieves a single article by its ID.
+
+    Args:
+        article_id (str): The string representation of the article's ObjectId.
+
+    Returns:
+        Article: The Article model corresponding to the provided ID.
+
+    Raises:
+        HTTPException: If the article with the given ID is not found.
+    """
     logger.info(f"Received request for article with id: {article_id}")
     article = await db["articles"].find_one({"_id": ObjectId(article_id)})
     if article is None:
@@ -126,6 +155,22 @@ async def get_article(article_id: str):
 
 @app.put("/articles/{article_id}", response_model=Article)
 async def update_article(article_id: str, article: Article):
+    """
+    Updates an existing article identified by its ID.
+
+    The endpoint updates the article document in the database with the provided Article data
+    and returns the updated Article model.
+
+    Args:
+        article_id (str): The string representation of the article's ObjectId.
+        article (Article): The Article model with updated data.
+
+    Returns:
+        Article: The updated Article model.
+
+    Raises:
+        HTTPException: If the article with the given ID is not found.
+    """
     logger.info(f"Received request to update article with id: {article_id}")
     article_data = jsonable_encoder(article)
     result = await db["articles"].update_one({"_id": ObjectId(article_id)}, {"$set": article_data})
@@ -139,6 +184,18 @@ async def update_article(article_id: str, article: Article):
 
 @app.delete("/articles/{article_id}", status_code=204)
 async def delete_article(article_id: str):
+    """
+    Deletes an article by its ID.
+
+    Args:
+        article_id (str): The string representation of the article's ObjectId.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If the article with the given ID is not found.
+    """
     logger.info(f"Received request to delete article with id: {article_id}")
     result = await db["articles"].delete_one({"_id": ObjectId(article_id)})
     if result.deleted_count == 1:
@@ -148,9 +205,23 @@ async def delete_article(article_id: str):
         logger.error(f"Article with id {article_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Article not found")
 
-# --------- Source Endpoints ---------
 @app.post("/sources/", response_model=Source, status_code=201)
 async def create_source(source: Source):
+    """
+    Creates a new source in the database.
+
+    Accepts a Source object, inserts it into the sources collection, and returns the created source.
+    If a source with the same base_url already exists, an HTTPException is raised.
+
+    Args:
+        source (Source): The Source model to be created.
+
+    Returns:
+        Source: The created Source model.
+
+    Raises:
+        HTTPException: If a source with the given base_url already exists.
+    """
     logger.info("Received request to create a source")
     source_data = jsonable_encoder(source)
     try:
@@ -165,6 +236,14 @@ async def create_source(source: Source):
 
 @app.get("/sources/", response_model=List[Source])
 async def list_sources():
+    """
+    Retrieves a list of all sources from the database.
+
+    Iterates over all documents in the sources collection and returns them as a list of Source models.
+
+    Returns:
+        List[Source]: A list of Source models.
+    """
     logger.info("Received request to list all sources")
     sources_list = []
     async for source in db["sources"].find():
@@ -174,6 +253,18 @@ async def list_sources():
 
 @app.get("/sources/{source_id}", response_model=Source)
 async def get_source(source_id: str):
+    """
+    Retrieves a single source by its ID.
+
+    Args:
+        source_id (str): The string representation of the source's ObjectId.
+
+    Returns:
+        Source: The Source model corresponding to the provided ID.
+
+    Raises:
+        HTTPException: If the source with the given ID is not found.
+    """
     logger.info(f"Received request for source with id: {source_id}")
     source = await db["sources"].find_one({"_id": ObjectId(source_id)})
     if source is None:
@@ -184,6 +275,22 @@ async def get_source(source_id: str):
 
 @app.put("/sources/{source_id}", response_model=Source)
 async def update_source(source_id: str, source: Source):
+    """
+    Updates an existing source identified by its ID.
+
+    The endpoint updates the source document in the database with the provided Source data
+    and returns the updated Source model.
+
+    Args:
+        source_id (str): The string representation of the source's ObjectId.
+        source (Source): The Source model with updated data.
+
+    Returns:
+        Source: The updated Source model.
+
+    Raises:
+        HTTPException: If the source with the given ID is not found.
+    """
     logger.info(f"Received request to update source with id: {source_id}")
     source_data = jsonable_encoder(source)
     result = await db["sources"].update_one({"_id": ObjectId(source_id)}, {"$set": source_data})
@@ -197,6 +304,18 @@ async def update_source(source_id: str, source: Source):
 
 @app.delete("/sources/{source_id}", status_code=204)
 async def delete_source(source_id: str):
+    """
+    Deletes a source by its ID.
+
+    Args:
+        source_id (str): The string representation of the source's ObjectId.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If the source with the given ID is not found.
+    """
     logger.info(f"Received request to delete source with id: {source_id}")
     result = await db["sources"].delete_one({"_id": ObjectId(source_id)})
     if result.deleted_count == 1:
