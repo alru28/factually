@@ -5,6 +5,25 @@ from app.utils.logger import DefaultLogger
 import re
 
 def process_articles_base(article_soup, source, date_base, date_cutoff, url) -> tuple[list[ArticleBase], bool]:
+    """
+    Processes a list of article HTML elements and filters valid articles.
+
+    This function extracts article details such as title, date, and link from the provided HTML elements,
+    validates and formats the date, and determines if the article falls within the specified date range.
+    It also checks if articles are older than the cutoff date.
+
+    Args:
+        article_soup: A list of BeautifulSoup objects representing article elements.
+        source (dict): Source configuration containing base URL and scraping parameters.
+        date_base (datetime.date): The base date for filtering articles.
+        date_cutoff (datetime.date): The exclusive cutoff date for filtering articles.
+        url (str): The URL from which articles are being scraped.
+
+    Returns:
+        tuple:
+            - List[ArticleBase]: A list of valid ArticleBase objects.
+            - bool: A flag indicating whether an article older than the cutoff date was encountered.
+    """
     valid_articles = []
     older_than_cutoff = False
     

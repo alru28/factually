@@ -4,7 +4,15 @@ import sys
 def setup_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
     """
     Configures and returns a logger with the specified name and logging level.
-    This logger writes log messages to the console.
+
+    The logger is configured to write log messages to the console with a specified format.
+
+    Args:
+        name (str): The name of the logger.
+        level (int, optional): The logging level. Default is logging.DEBUG.
+
+    Returns:
+        logging.Logger: The configured logger instance.
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -23,14 +31,31 @@ def setup_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
 
 class DefaultLogger(object):
     """
-    Singleton class with a default logger instance.
+    Singleton class providing a default logger instance.
+
+    This class ensures that only one logger instance is created and shared across the application.
     """
     def __new__(cls, name: str = "ExtractionService", level: int = logging.DEBUG):
-        # Only create one instance of DefaultLogger.
+        """
+        Creates a new instance of DefaultLogger if one does not exist, otherwise returns the existing instance.
+
+        Args:
+            name (str, optional): The name of the logger. Default is "ExtractionService".
+            level (int, optional): The logging level. Default is logging.DEBUG.
+
+        Returns:
+            DefaultLogger: The singleton instance of DefaultLogger.
+        """
         if not hasattr(cls, 'instance'):
             cls.instance = super(DefaultLogger, cls).__new__(cls)
             cls.instance.logger = setup_logger(name, level)
         return cls.instance
 
     def get_logger(self) -> logging.Logger:
+        """
+        Retrieves the logger instance.
+
+        Returns:
+            logging.Logger: The logger instance configured for the application.
+        """
         return self.logger

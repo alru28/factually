@@ -1,0 +1,51 @@
+name: Python Unit Tests, Linting, and Formatting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [extraction-service, storage-service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          pip install -r requirements.txt
+          pip install pytest coverage flake8 black
+
+      - name: Run Flake8 linting for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          flake8 app
+
+      - name: Run Black formatting check for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          black --check app
+
+      - name: Run unit tests for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          pytest --maxfail=1 --disable-warnings -q
+
+      - name: Generate coverage report for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          coverage run -m pytest
+          coverage report

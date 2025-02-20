@@ -4,6 +4,21 @@ from datetime import datetime, timedelta
 from app.utils.logger import DefaultLogger
 
 def format_date_str(text_date: str, format: str) -> datetime.date:
+    """
+    Formats a text date string into a datetime.date object using the specified format.
+
+    The function attempts to parse the given date string by first removing any leading words such as
+    'updated', 'published' or blank space, then trying specific locales and common date formats. If relative date formats
+    (e.g., '2 days ago') are detected, they are processed accordingly. In case of failure, a warning is logged
+    and the current date is returned as a fallback.
+
+    Args:
+        text_date (str): The date string to be formatted.
+        format (str): The expected date format for parsing the date string.
+
+    Returns:
+        datetime.date: The formatted date object.
+    """
     # REMOVE UPTADED OR PUBLISHED OR BLANK STARTING TEXT
     text_date = re.sub(r'^(updated|published)\s+', '', text_date, flags=re.IGNORECASE).strip()
     

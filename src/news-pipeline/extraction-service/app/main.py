@@ -17,6 +17,19 @@ app = FastAPI(title="Extraction Service")
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 
 def secure_date_range(date_base_str: str, date_cutoff_str: str):
+    """
+    Adjusts the date range provided in string format.
+
+    Converts the given base date and cutoff date strings into datetime objects using a specific format.
+    If both dates are identical, it subtracts one day from the cutoff date to ensure a proper range.
+
+    Args:
+        date_base_str (str): Base date in string format.
+        date_cutoff_str (str): Cutoff date in string format.
+
+    Returns:
+        tuple: A tuple containing the base date and the adjusted cutoff date as datetime objects.
+    """
     date_base = format_date_str(date_base_str, "%d-%m-%Y")
     date_cutoff = format_date_str(date_cutoff_str, "%d-%m-%Y")
     if date_base == date_cutoff:
@@ -26,9 +39,20 @@ def secure_date_range(date_base_str: str, date_cutoff_str: str):
 @app.post("/scrape/source", response_model=dict)
 async def scrape_source(scrape_request: SourceScrapeRequest):
     """
-    Scrapes a specific source (provided by name in the request) between date_base and date_cutoff.
-    The full source configuration is retrieved from the storage service API and then passed to the scraper.
-    The scraped articles (with content) are then inserted into the storage service via its bulk API.
+    Scrapes a specific source based on the provided source name and date range.
+
+    This endpoint retrieves the source configuration from the storage service,
+    scrapes the base articles using the source configuration and date range,
+    then scrapes article contents, and finally posts the scraped content to the storage service.
+
+    Args:
+        scrape_request (SourceScrapeRequest): Request object containing the source name, base date, and cutoff date.
+
+    Returns:
+        dict: A message indicating successful scraping and insertion of articles for the specified source.
+
+    Raises:
+        HTTPException: If sources cannot be retrieved or if the specified source is not found, or if posting content fails.
     """
     logger.info(f"Received scrape/source request for source: {scrape_request.name}")
     date_base, date_cutoff = secure_date_range(scrape_request.date_base, scrape_request.date_cutoff)
@@ -82,8 +106,21 @@ async def scrape_source(scrape_request: SourceScrapeRequest):
 @app.post("/scrape/all", response_model=dict)
 async def scrape_all(scrape_request: ScrapeRequest):
     """
-    Retrieves all sources from the storage service, scrapes articles for each source
-    from date_base to date_cutoff, and then inserts the scraped articles into the storage service.
+    Scrapes articles for all sources based on the provided date range.
+
+    This endpoint retrieves all source configurations from the storage service,
+    scrapes base articles for each source using the specified date range,
+    then scrapes article contents for all scraped articles,
+    and finally posts the collected articles to the storage service.
+
+    Args:
+        scrape_request (ScrapeRequest): Request object containing the base date and cutoff date.
+
+    Returns:
+        dict: A message indicating successful scraping and insertion of articles for all sources.
+
+    Raises:
+        HTTPException: If sources cannot be retrieved or if posting content fails.
     """
     logger.info("Received scrape/all request")
     date_base = format_date_str(scrape_request.date_base, "%d-%m-%Y")

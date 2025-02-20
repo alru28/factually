@@ -16,6 +16,20 @@ from app.core.driver import scroll_down, init_driver
 from app.models import ArticleBase, Article
 
 def obtain_urls(source: dict, date_base: date, date_cutoff: date):
+    """
+    Generates a set of URLs based on the source's URL template and the given date range.
+
+    For each date between the base date and the cutoff date (exclusive), the function formats
+    the source's URL template with the corresponding year, month, and day if they are present in the template.
+
+    Args:
+        source (dict): A dictionary containing source configuration, including the URL template.
+        date_base (date): The starting date for generating URLs.
+        date_cutoff (date): The ending date (exclusive) for generating URLs.
+
+    Returns:
+        set: A set of formatted URLs for the given date range.
+    """
     urls = set()
     current_date = date_base
     while current_date > date_cutoff:
@@ -25,6 +39,24 @@ def obtain_urls(source: dict, date_base: date, date_cutoff: date):
     return urls
 
 def collect_articles(source: dict, driver, url: str, date_base: date, date_cutoff: date):
+    """
+    Collects and processes articles from a given URL using a Selenium WebDriver.
+
+    The function loads the specified URL, scrolls down to load dynamic content,
+    extracts article elements using BeautifulSoup, and processes them using the
+    'process_articles_base' function.
+
+    Args:
+        source (dict): Source configuration containing scraping parameters.
+        driver: Selenium WebDriver instance for browsing.
+        url (str): The URL to scrape articles from.
+        date_base (date): The base date for filtering articles.
+        date_cutoff (date): The cutoff date for filtering articles.
+
+    Returns:
+        tuple: A tuple containing a list of processed ArticleBase objects and a boolean flag indicating
+               if an article older than the cutoff date was encountered.
+    """
     DefaultLogger().get_logger().debug(f"Processing: {url}")
 
     try:
@@ -42,6 +74,21 @@ def collect_articles(source: dict, driver, url: str, date_base: date, date_cutof
     return articles_processed, older_than_cutoff
 
 def scrape_articles_base(source: dict, date_base: date, date_cutoff: date) -> List[ArticleBase]:
+    """
+    Scrapes base article information from the source over a specified date range.
+
+    This function initializes a Selenium WebDriver, obtains URLs for the given date range,
+    processes articles using pagination, load-more patterns, or single page scraping, and returns a list of
+    ArticleBase objects representing the scraped articles.
+
+    Args:
+        source (dict): A dictionary containing source configuration for scraping.
+        date_base (date): The base date for scraping articles.
+        date_cutoff (date): The cutoff date for scraping articles.
+
+    Returns:
+        List[ArticleBase]: A list of scraped base articles.
+    """
     driver = init_driver()
 
     article_list = []
@@ -101,6 +148,19 @@ def scrape_articles_base(source: dict, date_base: date, date_cutoff: date) -> Li
     return article_list
 
 def scrape_articles_content_selenium(articles: List[ArticleBase]) -> List[Article]:
+    """
+    Scrapes the full content of articles using Selenium for rendering JavaScript content.
+
+    The function iterates over a list of ArticleBase objects, loads each article URL using a Selenium WebDriver,
+    scrolls down to load dynamic content, processes the article content using the 'process_articles_content' function,
+    and returns a list of Article objects with complete content.
+
+    Args:
+        articles (List[ArticleBase]): A list of articles to scrape content for.
+
+    Returns:
+        List[Article]: A list of articles with scraped content.
+    """
     driver = init_driver()
 
     article_list = []
@@ -123,6 +183,19 @@ def scrape_articles_content_selenium(articles: List[ArticleBase]) -> List[Articl
 
 
 def scrape_articles_content_requests(articles: List[ArticleBase]) -> List[Article]:
+    """
+    Scrapes the full content of articles using HTTP requests.
+
+    The function attempts to retrieve the article content using HTTP GET requests. If successful,
+    it processes the content using the 'process_articles_content' function. In case of request failures,
+    the article is skipped.
+
+    Args:
+        articles (List[ArticleBase]): A list of articles to scrape content for.
+
+    Returns:
+        List[Article]: A list of articles with scraped content.
+    """
     article_list = []
     DefaultLogger().get_logger().info(f"Scraping contents from {len(articles)} articles")
     
@@ -150,6 +223,19 @@ def scrape_articles_content_requests(articles: List[ArticleBase]) -> List[Articl
     return article_list
 
 def scrape_articles_content(articles: List[ArticleBase]) -> List[Article]:
+    """
+    Scrapes the full content of articles, using HTTP requests primarily and falling back to Selenium if necessary.
+
+    For each article, the function first attempts to retrieve the content via an HTTP GET request.
+    If the request fails, it falls back to using Selenium to load and scrape the content.
+    The function processes the content using the 'process_articles_content' function and returns a list of Article objects.
+
+    Args:
+        articles (List[ArticleBase]): A list of articles to scrape content for.
+
+    Returns:
+        List[Article]: A list of articles with scraped content.
+    """
     article_list = []
     DefaultLogger().get_logger().info(f"Scraping contents from {len(articles)} articles")
     
