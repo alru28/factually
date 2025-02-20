@@ -27,9 +27,14 @@ dummy_source_data = {
 
 class DummyCollection:
     async def insert_one(self, data):
-        class DummyResult:
-            inserted_id = dummy_article_data["_id"]
+        inserted_id = (
+            dummy_source_data["_id"] if "name" in data else dummy_article_data["_id"]
+        )
 
+        class DummyResult:
+            pass
+
+        DummyResult.inserted_id = inserted_id
         return DummyResult()
 
     async def find_one(self, query):
@@ -163,7 +168,7 @@ def test_create_source():
         "name": "Test Source",
         "base_url": "http://source.com",
         "url": "http://source.com/articles",
-        "article_selector": ".article",
+        "article_selector": "article",
         "date_format": "%Y-%m-%d",
         "button_selector": None,
     }
