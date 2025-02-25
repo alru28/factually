@@ -16,6 +16,9 @@ services:
     build: ./storage-service
     environment:
       - MONGO_CONNECTION_STRING=mongodb://mongo_user:mongo_pass@mongodb:27017/factually_db
+      - WEAVIATE_HOST=http://weaviate
+      - WEAVIATE_PORT=8080
+      - OLLAMA_CONNECTION_STRING=http://ollama:11434
     networks:
       - factually-network
     ports:
@@ -57,9 +60,34 @@ services:
     networks:
       - factually-network
 
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: cr.weaviate.io/semitechnologies/weaviate:1.29.0
+    ports:
+    - 8080:8080
+    volumes:
+    - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_API_BASED_MODULES: 'true'
+      ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
+      CLUSTER_HOSTNAME: 'node1'
+    networks:
+      - factually-network
+
 volumes:
   mongodb_data:
   ollama_data:
+  weaviate_data:
 
 networks:
   factually-network:
