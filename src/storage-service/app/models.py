@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import date
+from uuid import uuid4
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
@@ -8,14 +9,14 @@ class ArticleBase(BaseModel):
     Base model for an article.
 
     Attributes:
-        id (Optional[str]): Unique identifier for the article.
+        _id (Optional[str]): Unique identifier for the article.
         Title (str): Title of the article.
         Date (str): Date of publication of the article.
         Link (HttpUrl): URL link to the article.
         Source (HttpUrl): URL of the article source.
     """
 
-    id: Optional[str] = None
+    id: str = Field(default_factory=lambda: str(uuid4()))
     Title: str = Field(default="DefaultTitle", description="Title of the article")
     Date: str = Field(
         default_factory=lambda: date.today().isoformat(),
@@ -76,7 +77,7 @@ class Source(BaseModel):
     Model representing a source for scraping articles.
 
     Attributes:
-        id (Optional[str]): Unique identifier for the source.
+        _id (Optional[str]): Unique identifier for the source.
         name (str): Unique name of the source.
         base_url (HttpUrl): Base URL of the source.
         url (str): URL pattern for scraping articles.
@@ -85,7 +86,7 @@ class Source(BaseModel):
         button_selector (Optional[str]): CSS selector for navigation button, if any.
     """
 
-    id: Optional[str] = None
+    id: str = Field(default_factory=lambda: str(uuid4()))
     name: str = Field(..., description="Unique name of the source")
     base_url: HttpUrl
     url: str = Field(..., description="URL pattern for scraping")
@@ -111,7 +112,7 @@ def article_helper(article) -> Article:
     Returns:
         Article: The parsed Article model instance.
     """
-    article["id"] = str(article["_id"])
+    article["id"] = article["_id"]
     del article["_id"]
     return Article.model_validate(article)
 
@@ -129,6 +130,18 @@ def source_helper(source) -> Source:
     Returns:
         Source: The parsed Source model instance.
     """
-    source["id"] = str(source["_id"])
+    source["id"] = source["_id"]
     del source["_id"]
     return Source.model_validate(source)
+
+def article_to_weaviate_object(article: Article) -> dict:
+    content = article.Title
+    if article.Paragraphs:
+        content += "\n" + "\n".join(article.Paragraphs)
+    
+    return {
+        "Title": article.Title,
+        "Content": content,
+        "Date": article.Date,
+        "Source": str(article.Source),
+    }

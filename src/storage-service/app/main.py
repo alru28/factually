@@ -1,17 +1,53 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from typing import List
-from app.models import Article, Source, article_helper, source_helper
-from app.db.database import db
+from app.models import Article, Source, article_helper, source_helper, article_to_weaviate_object
+from app.db.mongo import db
+from app.db.weaviate_client import create_article_schema, get_weaviate_client
+import requests
 import uvicorn
+import os
 from pymongo.errors import DuplicateKeyError, BulkWriteError
 from bson import ObjectId
 from app.utils.logger import DefaultLogger
+
+OLLAMA_CONNECTION_STRING = os.getenv(
+    "OLLAMA_CONNECTION_STRING", "http://ollama:11434"
+)
 
 logger = DefaultLogger("StorageService").get_logger()
 
 app = FastAPI(title="Storage Service", openapi_url="/openapi.json")
 
+def check_and_pull_model():
+    try:
+        response = requests.get(f"{OLLAMA_CONNECTION_STRING}/api/tags")
+        if response.status_code == 200:
+            models = response.json().get("models", [])
+            print(f"MODELOS: {models}")
+            if "llama3.2:1b" not in models:
+                pull_response = requests.post(f"{OLLAMA_CONNECTION_STRING}/api/pull", json={"name": "llama3.2:1b"})
+                if pull_response.status_code != 200:
+                    raise Exception("Failed to pull llama2 model")
+            if "nomic-embed-text" not in models:
+                pull_response = requests.post(f"{OLLAMA_CONNECTION_STRING}/api/pull", json={"name": "nomic-embed-text"})
+                if pull_response.status_code != 200:
+                    raise Exception("Failed to pull nomic-embed-text model")
+        else:
+            raise Exception("Failed to retrieve models from Ollama")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def sync_article_to_weaviate(article_obj: Article):
+    try: 
+        client = get_weaviate_client()
+        obj = article_to_weaviate_object(article_obj)
+    
+        articles = client.collections.get('Article')
+        articles.data.insert(obj, uuid=article_obj.id)
+        logger.info(f"Inserted Article into Weaviate:\n{obj}")
+    finally:
+        client.close()
 
 async def create_indexes():
     """
@@ -28,21 +64,26 @@ async def create_indexes():
 @app.on_event("startup")
 async def startup_event():
     """
-    Startup event handler that initializes the database indexes.
+    Startup event handler that initializes the database indexes for MongoDB and the Weaviate schema.
 
     This function is executed when the application starts up, ensuring that the necessary unique indexes are in place.
     """
-    logger.info("Startup event: Initializing indexes")
+    logger.info("Startup event: Initializing MongoDB indexes")
     await create_indexes()
+    logger.info("Startup event: Initializing Ollama models")
+    check_and_pull_model()
+    logger.info("Startup event: Initializing Weaviate schema")
+    create_article_schema()
 
 
 @app.post("/articles/", response_model=Article, status_code=201)
-async def create_article(article: Article):
+async def create_article(article: Article, background_tasks: BackgroundTasks):
     """
     Creates a new article in the database.
 
     Accepts an Article object, inserts it into the articles collection, and returns the created article.
-    If an article with the same Link already exists, an HTTPException is raised.
+    If an article with the same Link already exists, an HTTPException is raised. Finally, it syncs the article
+    inserting it in Weaviate
 
     Args:
         article (Article): The Article model to be created.
@@ -55,6 +96,8 @@ async def create_article(article: Article):
     """
     logger.info("Received request to create an article")
     article_data = jsonable_encoder(article)
+    if "id" in article_data:
+        article_data["_id"] = article_data.pop("id")
     try:
         new_article = await db["articles"].insert_one(article_data)
         logger.debug(f"Inserted article with _id: {new_article.inserted_id}")
@@ -64,8 +107,11 @@ async def create_article(article: Article):
             status_code=400, detail="Article with this Link already exists"
         )
     created_article = await db["articles"].find_one({"_id": new_article.inserted_id})
+    article_obj = article_helper(created_article)
     logger.info("Article created successfully")
-    return article_helper(created_article)
+    # BACKGROUND TASK TO SYNC WITH WEAVIATE HERE
+    background_tasks.add_task(sync_article_to_weaviate, article_obj)
+    return article_obj
 
 
 @app.post("/articles/bulk", response_model=List[Article], status_code=201)
@@ -88,6 +134,10 @@ async def create_articles_bulk(articles: List[Article]):
     """
     logger.info("Received bulk articles creation request")
     articles_data = [jsonable_encoder(article) for article in articles]
+    for article_data in articles_data:
+        if "id" in article_data:
+            article_data["_id"] = article_data.pop("id")
+        
     try:
         result = await db["articles"].insert_many(articles_data, ordered=False)
         logger.debug(f"Bulk inserted {len(result.inserted_ids)} articles")
@@ -123,6 +173,8 @@ async def create_articles_bulk(articles: List[Article]):
     logger.info(
         f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles"
     )
+    # BACKGROUND TASK TO SYNC WITH WEAVIATE HERE
+    
     return created_articles
 
 
@@ -350,6 +402,28 @@ async def delete_source(source_id: str):
     else:
         logger.error(f"Source with id {source_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Source not found")
+
+@app.get("/search/") # , response_model=List[Article]
+async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
+    """
+    Search articles using Weaviate's hybrid search.
+    """
+    client = get_weaviate_client()
+    articles = client.collections.get('Article')
+    response = articles.query.hybrid(
+        query=query,
+        alpha=alpha,
+        limit=limit
+    )
+    # Transform results back to your Article model (lookup by Link or other identifier)
+    results = []
+    for article in response.objects:
+        results.append({'Title':article.properties.title,
+                        'Date':article.properties.date,
+                        'Content':article.properties.content,
+                        'Source':article.properties.source})
+    client.close()
+    return results
 
 
 if __name__ == "__main__":

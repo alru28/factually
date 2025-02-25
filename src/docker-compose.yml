@@ -16,8 +16,9 @@ services:
     build: ./storage-service
     environment:
       - MONGO_CONNECTION_STRING=mongodb://mongo_user:mongo_pass@mongodb:27017/factually_db
-      - WEAVIATE_HOST=http://weaviate
+      - WEAVIATE_HOST=weaviate
       - WEAVIATE_PORT=8080
+      - WEAVIATE_GRPC=50051
       - OLLAMA_CONNECTION_STRING=http://ollama:11434
     networks:
       - factually-network
@@ -71,6 +72,7 @@ services:
     image: cr.weaviate.io/semitechnologies/weaviate:1.29.0
     ports:
     - 8080:8080
+    - 50051:50051
     volumes:
     - weaviate_data:/var/lib/weaviate
     restart: on-failure:0
