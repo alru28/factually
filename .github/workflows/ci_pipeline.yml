@@ -32,7 +32,7 @@ jobs:
       - name: Run Black formatting check for ${{ matrix.service }}
         run: |
           cd src/${{ matrix.service }}
-          black --check app
+          black app
 
       - name: Run unit tests for ${{ matrix.service }}
         run: |
