@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from app.utils.logger import DefaultLogger
-from app.rabbitmq.connection import get_channel
+from app.rabbitmq.connection import RabbitMQConnection
 from app.rabbitmq.setup import declare_exchange_queues
 import uvicorn
 
@@ -11,7 +11,7 @@ logger = DefaultLogger("OrchestrationService").get_logger()
 
 @app.get("/test/")
 async def test_service():
-    channel = get_channel()
+    channel = RabbitMQConnection.get_channel()
     logger.info("Channel obtained")
     declare_exchange_queues(channel)
     logger.info("Queues and Exchange declared")
