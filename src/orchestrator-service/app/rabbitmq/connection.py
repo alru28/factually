@@ -2,7 +2,7 @@ import pika
 import os
 
 RABBITMQ_CONNECTION_STRING = os.getenv(
-    "RABBITMQ_CONNECTION_STRING", "http://rabbitmq:5672"
+    "RABBITMQ_CONNECTION_STRING", "amqp://guest:guest@rabbitmq:5672/%2F"
 )
 
 def get_connection():

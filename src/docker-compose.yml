@@ -1,6 +1,18 @@
 name: factually
 
 services:
+  orchestrator-service:
+    build: ./orchestrator-service
+    environment:
+      - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
+    ports:
+      - "8002:8000"
+    networks:
+      - factually-network
+    depends_on:
+      - extraction-service
+      - storage-service
+      
   extraction-service:
     build: ./extraction-service
     environment:

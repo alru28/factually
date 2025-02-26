@@ -1,4 +1,3 @@
-
 def declare_exchange_queues(channel):
     # Declare a topic exchange
     channel.exchange_declare(exchange='Articles', exchange_type='topic', durable=True)
