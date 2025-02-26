@@ -1,6 +1,11 @@
 import weaviate
 import weaviate.classes.config as wvcc
 import os
+from typing import List
+from app.utils.logger import DefaultLogger
+from app.models import Article, article_to_weaviate_object
+
+logger = DefaultLogger("StorageService").get_logger()
 
 WEAVIATE_HOST = os.getenv(
     "WEAVIATE_HOST", "http://weaviate"
@@ -26,25 +31,43 @@ def get_weaviate_client():
 
 def create_article_schema():
     client = get_weaviate_client()
-
     try:
-        article_collection = client.collections.create(
-            name="Article",
-            description="An article stored for semantic/keyword search",
-            vectorizer_config=wvcc.Configure.Vectorizer.text2vec_ollama(
-                api_endpoint=OLLAMA_CONNECTION_STRING,
-                model="nomic-embed-text"
-            ),
-            generative_config=wvcc.Configure.Generative.ollama(
-                api_endpoint=OLLAMA_CONNECTION_STRING,
-                model="llama3.2:1b"
-            ),
-            properties=[
-                wvcc.Property(name='Title', data_type=wvcc.DataType.TEXT, description="Title of the article"),
-                wvcc.Property(name='Content', data_type=wvcc.DataType.TEXT, description="Combined article content"),
-                wvcc.Property(name='Date', data_type=wvcc.DataType.TEXT, description="Publication date"), # If I use the DataType.DATE format, it expects a string with the date in a RFC 3339 timestamps
-                wvcc.Property(name='Source', data_type=wvcc.DataType.TEXT, description="URL of the source"),
-            ]
-        )
+        collection = client.collections.get("Article")
+        logger.info("Article collection is already initialized in Weaviate")
+    except:
+        try:
+            article_collection = client.collections.create(
+                name="Article",
+                description="An article stored for semantic/keyword search",
+                vectorizer_config=wvcc.Configure.Vectorizer.text2vec_ollama(
+                    api_endpoint=OLLAMA_CONNECTION_STRING,
+                    model="nomic-embed-text"
+                ),
+                generative_config=wvcc.Configure.Generative.ollama(
+                    api_endpoint=OLLAMA_CONNECTION_STRING,
+                    model="llama3.2:1b"
+                ),
+                properties=[
+                    wvcc.Property(name='Title', data_type=wvcc.DataType.TEXT, description="Title of the article"),
+                    wvcc.Property(name='Content', data_type=wvcc.DataType.TEXT, description="Combined article content"),
+                    wvcc.Property(name='Date', data_type=wvcc.DataType.TEXT, description="Publication date"), # If I use the DataType.DATE format, it expects a string with the date in a RFC 3339 timestamps
+                    wvcc.Property(name='Source', data_type=wvcc.DataType.TEXT, description="URL of the source"),
+                ]
+            )
+        finally:
+            client.close()
+    finally:
+        client.close()
+    
+
+def sync_articles_to_weaviate(articles_list: List[Article]):
+    client = get_weaviate_client()
+    articles_collection = client.collections.get("Article")
+    try:
+        with articles_collection.batch.dynamic() as batch:
+            for article_obj in articles_list:
+                obj = article_to_weaviate_object(article_obj)
+                batch.add_object(obj, uuid=article_obj.id)
+        logger.info(f"Batch inserted {len(articles_list)} articles into Weaviate.")
     finally:
         client.close()

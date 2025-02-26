@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from typing import List
-from app.models import Article, Source, article_helper, source_helper, article_to_weaviate_object
+from app.models import Article, Source, article_helper, source_helper
 from app.db.mongo import db
-from app.db.weaviate_client import create_article_schema, get_weaviate_client
+from app.db.weaviate_client import create_article_schema, get_weaviate_client, sync_articles_to_weaviate
 import requests
 import uvicorn
 import os
@@ -37,17 +37,6 @@ def check_and_pull_model():
             raise Exception("Failed to retrieve models from Ollama")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-def sync_article_to_weaviate(article_obj: Article):
-    try: 
-        client = get_weaviate_client()
-        obj = article_to_weaviate_object(article_obj)
-    
-        articles = client.collections.get('Article')
-        articles.data.insert(obj, uuid=article_obj.id)
-        logger.info(f"Inserted Article into Weaviate:\n{obj}")
-    finally:
-        client.close()
 
 async def create_indexes():
     """
@@ -100,7 +89,7 @@ async def create_article(article: Article, background_tasks: BackgroundTasks):
         article_data["_id"] = article_data.pop("id")
     try:
         new_article = await db["articles"].insert_one(article_data)
-        logger.debug(f"Inserted article with _id: {new_article.inserted_id}")
+        logger.debug(f"Inserted article with id: {new_article.inserted_id}")
     except DuplicateKeyError:
         logger.error("Duplicate article insertion attempted", exc_info=True)
         raise HTTPException(
@@ -108,14 +97,13 @@ async def create_article(article: Article, background_tasks: BackgroundTasks):
         )
     created_article = await db["articles"].find_one({"_id": new_article.inserted_id})
     article_obj = article_helper(created_article)
-    logger.info("Article created successfully")
-    # BACKGROUND TASK TO SYNC WITH WEAVIATE HERE
-    background_tasks.add_task(sync_article_to_weaviate, article_obj)
+    background_tasks.add_task(sync_articles_to_weaviate, [article_obj])
+    logger.info("Article created and synced with weaviate successfully")
     return article_obj
 
 
 @app.post("/articles/bulk", response_model=List[Article], status_code=201)
-async def create_articles_bulk(articles: List[Article]):
+async def create_articles_bulk(articles: List[Article], background_tasks: BackgroundTasks):
     """
     Creates multiple articles in bulk.
 
@@ -173,7 +161,7 @@ async def create_articles_bulk(articles: List[Article]):
     logger.info(
         f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles"
     )
-    # BACKGROUND TASK TO SYNC WITH WEAVIATE HERE
+    background_tasks.add_task(sync_articles_to_weaviate, created_articles)
     
     return created_articles
 
