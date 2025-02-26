@@ -1,4 +1,4 @@
-from bson import ObjectId
+from uuid import uuid4
 from app.models import article_helper, source_helper, Article, Source
 
 
@@ -8,7 +8,7 @@ def test_article_helper():
     into an Article model.
     """
     dummy_article = {
-        "_id": ObjectId("507f191e810c19729de860ea"),
+        "_id": str(uuid4()),
         "Title": "Test Article",
         "Date": "2022-01-01",
         "Link": "http://example.com",
@@ -26,7 +26,7 @@ def test_source_helper():
     into a Source model.
     """
     dummy_source = {
-        "_id": ObjectId("507f191e810c19729de860eb"),
+        "_id": str(uuid4()),
         "name": "Test Source",
         "base_url": "http://source.com",
         "url": "http://source.com/articles",
