@@ -32,8 +32,8 @@ class WorkflowRequest(BaseModel):
         default=None,
         description="List of article ids to process"
     )
-    start_date: date = Field(..., description="Start date for scraping")
-    end_date: date = Field(..., description="End date for scraping")
+    date_base: date = Field(..., description="Start date for scraping")
+    date_cutoff: date = Field(..., description="End date for scraping")
     pipeline: Optional[Pipeline] = Field(
         default=None,
         description="Optional pipeline of tasks. If provided, tasks in this list will be executed sequentially."

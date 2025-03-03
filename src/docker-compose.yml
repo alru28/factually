@@ -21,12 +21,17 @@ services:
     build: ./extraction-service
     environment:
       - STORAGE_SERVICE_URL=http://storage-service:8000
+      - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
+      - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
       - "8000:8000"
     networks:
       - factually-network
     depends_on:
-      - storage-service
+      rabbitmq:
+        condition: service_healthy
+      storage-service:
+        condition: service_started
 
   storage-service:
     build: ./storage-service
