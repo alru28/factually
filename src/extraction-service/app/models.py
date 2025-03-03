@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import date, datetime, timedelta
+from uuid import uuid4
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
@@ -60,7 +61,7 @@ class ArticleBase(BaseModel):
         Source (HttpUrl): URL of the article source.
     """
 
-    id: Optional[str] = None
+    id: str = Field(default_factory=lambda: str(uuid4()))
     Title: str = Field(default="DefaultTitle", description="Title of the article")
     Date: str = Field(
         default_factory=lambda: date.today().isoformat(),

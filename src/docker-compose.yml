@@ -10,8 +10,12 @@ services:
     networks:
       - factually-network
     depends_on:
-      - extraction-service
-      - storage-service
+      rabbitmq:
+        condition: service_healthy
+      extraction-service:
+        condition: service_started
+      storage-service:
+        condition: service_started
       
   extraction-service:
     build: ./extraction-service
@@ -108,6 +112,11 @@ services:
         - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
         - factually-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
 volumes:
   mongodb_data:

@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from contextlib import asynccontextmanager
 from fastapi.encoders import jsonable_encoder
 from typing import List
-from app.models import Article, Source, article_helper, source_helper
+from app.models import Article, Source, SearchResult, article_helper, source_helper
 from app.db.mongo import db
 from app.db.weaviate_client import create_article_schema, get_weaviate_client, sync_articles_to_weaviate
 import requests
@@ -16,8 +17,6 @@ OLLAMA_CONNECTION_STRING = os.getenv(
 )
 
 logger = DefaultLogger("StorageService").get_logger()
-
-app = FastAPI(title="Storage Service", openapi_url="/openapi.json")
 
 def check_and_pull_model():
     try:
@@ -50,20 +49,20 @@ async def create_indexes():
     await db["sources"].create_index("base_url", unique=True)
 
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    Startup event handler that initializes the database indexes for MongoDB and the Weaviate schema.
-
-    This function is executed when the application starts up, ensuring that the necessary unique indexes are in place.
-    """
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Models and DBs init
     logger.info("Startup event: Initializing MongoDB indexes")
     await create_indexes()
     logger.info("Startup event: Initializing Ollama models")
     check_and_pull_model()
     logger.info("Startup event: Initializing Weaviate schema")
     create_article_schema()
+    
+    # App running
+    yield
 
+app = FastAPI(lifespan=lifespan, title="Storage Service", openapi_url="/openapi.json")
 
 @app.post("/articles/", response_model=Article, status_code=201)
 async def create_article(article: Article, background_tasks: BackgroundTasks):
@@ -391,7 +390,7 @@ async def delete_source(source_id: str):
         logger.error(f"Source with id {source_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Source not found")
 
-@app.get("/search/") # , response_model=List[Article]
+@app.get("/search/", response_model=List[SearchResult])
 async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
     """
     Search articles using Weaviate's hybrid search.
@@ -403,7 +402,7 @@ async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
         alpha=alpha,
         limit=limit
     )
-    # Transform results back to your Article model (lookup by Link or other identifier)
+
     results = []
     for article in response.objects:
         results.append({'Title':article.properties.title,
@@ -413,6 +412,13 @@ async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
     client.close()
     return results
 
+@app.get("/health")
+async def health_check():
+    try:
+        await db.runCommand("ping")
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connectivity issue: {str(e)}")
 
 if __name__ == "__main__":
     logger.info("Starting Storage Service")

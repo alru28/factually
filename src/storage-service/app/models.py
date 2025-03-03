@@ -9,7 +9,7 @@ class ArticleBase(BaseModel):
     Base model for an article.
 
     Attributes:
-        _id (Optional[str]): Unique identifier for the article.
+        _id (str): Unique identifier for the article.
         Title (str): Title of the article.
         Date (str): Date of publication of the article.
         Link (HttpUrl): URL link to the article.
@@ -98,6 +98,11 @@ class Source(BaseModel):
         None, description="CSS selector for navigation button, if any"
     )
 
+class SearchResult(BaseModel):
+    Title: str
+    Date: str
+    Content: str
+    Source: str
 
 def article_helper(article) -> Article:
     """
