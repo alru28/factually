@@ -3,8 +3,7 @@ import json
 import asyncio
 from app.utils.logger import DefaultLogger
 from app.core.scrapper import scrape_articles_base, scrape_articles_content
-from app.utils.date_formatter import format_date_str, secure_date_range
-from app.models import SourceScrapeRequest
+from app.utils.date_formatter import secure_date_range
 from app.utils.services import get_sources, post_articles_bulk, notify_orchestrator
 from app.rabbitmq.connection import RabbitMQConnection
 
@@ -12,15 +11,22 @@ logger = DefaultLogger("ExtractionService").get_logger()
 
 async def process_extraction_task(task_payload: dict):
     logger.info("Processing extraction task from RabbitMQ")
-
-    # Expected
-    source_name = task_payload.get("name")
-    date_base_str = task_payload.get("date_base")
-    date_cutoff_str = task_payload.get("date_cutoff")
+    inner = task_payload.get("payload", {})
+    
+    sources = inner.get("sources")
+    date_base_str = inner.get("date_base")
+    date_cutoff_str = inner.get("date_cutoff")
     correlation_id = task_payload.get("correlation_id")
-
-    if not source_name or not date_base_str or not date_cutoff_str or not correlation_id:
-        logger.error("Missing required fields in task payload")
+    
+    required = {
+        "sources": sources,
+        "date_base": date_base_str,
+        "date_cutoff": date_cutoff_str,
+        "correlation_id": correlation_id,
+    }
+    missing = [key for key, value in required.items() if not value]
+    if missing:
+        logger.error(f"Missing required fields in task payload: {missing}. Full payload: {task_payload}")
         return
     
     date_base, date_cutoff = secure_date_range(date_base_str, date_cutoff_str)
@@ -30,18 +36,21 @@ async def process_extraction_task(task_payload: dict):
     except Exception as e:
         logger.error(f"Error retrieving sources: {e}")
         return
-    
-    source_dict = next(
-        (src for src in sources_list if src.get("name", "").lower() == source_name.lower()),
-        None
-    )
-    if not source_dict:
-        logger.error(f"Source '{source_name}' not found in Storage Service")
-        return
-    
-    articles = scrape_articles_base(source_dict, date_base, date_cutoff)
-    logger.debug(f"Scraped {len(articles)} base articles")
 
+    payload_sources = set(s.lower() for s in sources)
+    matching_sources = [src for src in sources_list if src.get("name", "").lower() in payload_sources]
+    
+    if not matching_sources or len(matching_sources) != len(payload_sources):
+        logger.error(f"Some of the sources specified not found in Storage Service: {sources}")
+        return
+
+    articles = []
+    for src in matching_sources:
+        articles_from_src = scrape_articles_base(src, date_base, date_cutoff)
+        logger.debug(f"Scraped {len(articles_from_src)} base articles from source {src.get('name')}")
+        articles.extend(articles_from_src)
+    
+    logger.debug(f"Total scraped base articles: {len(articles)}")
     articles_content = scrape_articles_content(articles)
     logger.debug(f"Scraped content for {len(articles_content)} articles")
 
@@ -51,7 +60,6 @@ async def process_extraction_task(task_payload: dict):
         logger.error(f"Error posting articles: {e}")
         return
     
-    # Notify orchestrator that extraction is complete
     try:
         await notify_orchestrator(correlation_id, {
             "status": "extraction_complete",

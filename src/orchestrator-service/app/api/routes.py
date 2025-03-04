@@ -28,11 +28,23 @@ async def start_workflow(workflow_request: WorkflowRequest, background_tasks: Ba
         first_task = workflow_request.workflow_type
         logger.info(f"No pipeline provided, using default workflow type: {first_task}")
 
+    payload = {
+    "sources": workflow_request.sources,
+    "articles": workflow_request.articles,
+    "date_base": workflow_request.date_base.isoformat(),
+    "date_cutoff": workflow_request.date_cutoff.isoformat()
+    }
+
+    if workflow_request.pipeline and workflow_request.pipeline.tasks:
+        current_task = workflow_request.pipeline.tasks[0]
+        if current_task.parameters:
+            payload.update(current_task.parameters)
     message = MessagePayload(
         correlation_id=correlation_id,
-        task=first_task,
-        payload=workflow_request.dict()
+        task=current_task.name if workflow_request.pipeline else workflow_request.workflow_type,
+        payload=payload
     )
+
     # Publish the first task message with RabbitMQ
     background_tasks.add_task(publish_message, message.dict(), first_task)
     logger.info(f"Published initial task '{first_task}' with correlation_id: {correlation_id}")
