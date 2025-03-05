@@ -1,7 +1,7 @@
 import pytest
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
-from app.core.scrapper import obtain_urls, collect_articles, scrape_articles_base
+from app.core.scraper import obtain_urls, collect_articles, scrape_articles_base
 from app.models import ArticleBase
 
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 import uuid
 from uuid import UUID
 from app.models import WorkflowRequest, WorkflowResponse, MessagePayload
-from app.rabbitmq.publisher import publish_message
+from app.rabbitmq.operations import publish_message
 from app.utils.pipeline_manager import start_pipeline, advance_pipeline, remove_pipeline
 from app.utils.logger import DefaultLogger
 
@@ -46,7 +46,8 @@ async def start_workflow(workflow_request: WorkflowRequest, background_tasks: Ba
     )
 
     # Publish the first task message with RabbitMQ
-    background_tasks.add_task(publish_message, message.dict(), first_task)
+    # background_tasks.add_task(publish_message, message.dict(), first_task)
+    await publish_message(message.dict(), first_task)
     logger.info(f"Published initial task '{first_task}' with correlation_id: {correlation_id}")
 
     return WorkflowResponse(correlation_id=correlation_id, message="Workflow started successfully")

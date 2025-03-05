@@ -1,20 +1,24 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from contextlib import asynccontextmanager
 from app.utils.logger import DefaultLogger
-from app.rabbitmq.connection import RabbitMQConnection
-from app.rabbitmq.setup import declare_exchange_queues
+from app.rabbitmq.client import get_rabbitmq_client
+from app.rabbitmq.operations import handle_message
 from app.api.routes import router as workflow_router
+import os
+import asyncio
 import uvicorn
+
+
 
 logger = DefaultLogger("OrchestrationService").get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        channel = RabbitMQConnection.get_channel()
-        logger.info("RabbitMQ Channel obtained")
-        declare_exchange_queues(channel)
-        logger.info("Queues and Exchange declared")
+        client = await get_rabbitmq_client()
+        logger.info("RabbitMQ Client connected | Queues and Exchange declared")
+
+        asyncio.create_task(client.consume('tasks_completion', callback=handle_message))
     except Exception as e:
         logger.error(f"Error during RabbitMQ initialization: {e}")
 
@@ -23,10 +27,8 @@ async def lifespan(app: FastAPI):
 
     # RabbitMQ shutdown
     try:
-        RabbitMQConnection.close_channel()
-        logger.info("RabbitMQ Channel closed")
-        RabbitMQConnection.close_connection()
-        logger.info("RabbitMQ Connection closed")
+        await client.close()
+        logger.info("RabbitMQ Client connection closed")
     except Exception as e:
         logger.error(f"Error during RabbitMQ shutdown: {e}")
 

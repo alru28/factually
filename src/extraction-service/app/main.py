@@ -1,37 +1,37 @@
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
-from app.core.scrapper import scrape_articles_base, scrape_articles_content
+from app.core.scraper import scrape_articles_base, scrape_articles_content
 from app.utils.date_formatter import format_date_str, secure_date_range
 from app.models import ScrapeRequest, SourceScrapeRequest
 from app.utils.logger import DefaultLogger
 from app.utils.services import get_sources, post_articles_bulk
 from fastapi import FastAPI, HTTPException
-from app.rabbitmq import consumer as rabbit_consumer
-from app.rabbitmq.connection import RabbitMQConnection
-
-import httpx
-import os
+from app.rabbitmq.client import get_rabbitmq_client
+from app.rabbitmq.operations import handle_message
+import asyncio
 import uvicorn
-import threading
 
 logger = DefaultLogger("ExtractionService").get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Start RabbitMQ consumer in a separate thread
-    consumer_thread = threading.Thread(target=rabbit_consumer.start_consumer, daemon=True)
-    consumer_thread.start()
-    logger.info("RabbitMQ consumer thread started in startup")
+    try:
+        client = await get_rabbitmq_client()
+        logger.info("RabbitMQ Client connected | Queues and Exchange declared")
 
+        asyncio.create_task(client.consume('tasks_extraction', callback=handle_message))
+    except Exception as e:
+        logger.error(f"Error during RabbitMQ initialization: {e}")
+
+    # App running
     yield
 
+    # RabbitMQ shutdown
     try:
-        channel = RabbitMQConnection.get_channel()
-        channel.stop_consuming()
+        await client.close()
+        logger.info("RabbitMQ Client connection closed")
     except Exception as e:
-        logger.error(f"Error stopping RabbitMQ consumer: {e}")
-    consumer_thread.join(timeout=5)
-    logger.info("RabbitMQ consumer thread stopped in shutdown")
+        logger.error(f"Error during RabbitMQ shutdown: {e}")
 
 app = FastAPI(lifespan=lifespan, title="Extraction Service")
 
