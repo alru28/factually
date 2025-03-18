@@ -1,5 +1,3 @@
-# app/utils/services.py
-
 import os
 import httpx
 from fastapi.encoders import jsonable_encoder
@@ -8,7 +6,6 @@ from app.utils.logger import DefaultLogger
 logger = DefaultLogger("ExtractionService").get_logger()
 
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
-ORCHESTRATOR_SERVICE_URL = os.getenv("ORCHESTRATOR_SERVICE_URL", "http://orchestrator-service:8000")
 
 async def get_sources():
     logger.debug("Requesting sources from Storage Service")
