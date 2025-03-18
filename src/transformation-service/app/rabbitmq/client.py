@@ -10,7 +10,7 @@ RABBITMQ_CONNECTION_STRING = os.getenv(
     "RABBITMQ_CONNECTION_STRING", "amqp://guest:guest@rabbitmq:5672/%2F"
 )
 
-logger = DefaultLogger("ExtractionService").get_logger()
+logger = DefaultLogger("TransformationService").get_logger()
 
 class RabbitMQClient:
     def __init__(self, rabbitmq_url: str, exchange_name: str, queues: dict = None):
