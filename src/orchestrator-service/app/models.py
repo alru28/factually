@@ -22,7 +22,7 @@ class Pipeline(BaseModel):
 class WorkflowRequest(BaseModel):
     workflow_type: str = Field(
         ...,
-        description="Type of workflow, e.g. 'extract_store_transform_store'"
+        description="Type of workflow, e.g. 'extraction_transformation'"
     )
     sources: Optional[List[str]] = Field(
         default=None,
@@ -37,10 +37,6 @@ class WorkflowRequest(BaseModel):
     pipeline: Optional[Pipeline] = Field(
         default=None,
         description="Optional pipeline of tasks. If provided, tasks in this list will be executed sequentially."
-    )
-    extra_params: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Any extra parameters needed for the workflow"
     )
 
 class WorkflowResponse(BaseModel):
