@@ -6,6 +6,15 @@ db.createUser({
   roles: [{ role: "readWrite", db: "factually_db" }]
 });
 
+// Helper function to generate a UUIDv4 string.
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+       var r = Math.random() * 16 | 0,
+           v = c === 'x' ? r : (r & 0x3 | 0x8);
+       return v.toString(16);
+    });
+}
+
 var sources = {
   "theverge": {
       base_url: "https://www.theverge.com",
@@ -62,6 +71,7 @@ for (var key in sources) {
     if (sources.hasOwnProperty(key)) {
         var source = sources[key];
         source.name = key;
+        source._id = generateUUID();
         db.sources.insertOne(source);
     }
 }

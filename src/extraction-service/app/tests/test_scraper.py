@@ -1,7 +1,7 @@
 import pytest
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
-from app.core.scrapper import obtain_urls, collect_articles, scrape_articles_base
+from app.core.scraper import obtain_urls, collect_articles, scrape_articles_base
 from app.models import ArticleBase
 
 
@@ -29,7 +29,7 @@ def test_obtain_urls(source_config):
     assert urls == expected
 
 
-# Dummy driver for scrapper tests.
+# Dummy driver for scraper tests.
 class DummyDriver:
     def __init__(self, html):
         self.page_source = html
@@ -98,7 +98,7 @@ def test_scrape_articles_base(monkeypatch, source_config):
     def dummy_init_driver():
         return DummyDriver()
 
-    monkeypatch.setattr("app.core.scrapper.init_driver", dummy_init_driver)
+    monkeypatch.setattr("app.core.scraper.init_driver", dummy_init_driver)
 
     # Monkeypatch collect_articles to bypass real HTML processing.
     def dummy_collect_articles(source, driver, url, date_base, date_cutoff):
@@ -110,7 +110,7 @@ def test_scrape_articles_base(monkeypatch, source_config):
         )
         return ([dummy_article], False)
 
-    monkeypatch.setattr("app.core.scrapper.collect_articles", dummy_collect_articles)
+    monkeypatch.setattr("app.core.scraper.collect_articles", dummy_collect_articles)
     articles = scrape_articles_base(source_config, date(2022, 1, 3), date(2022, 1, 1))
     assert isinstance(articles, list)
     # Will be two since it will be including the dummy article declared within the dummy driver and the collected one

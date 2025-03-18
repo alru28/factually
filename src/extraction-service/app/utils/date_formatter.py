@@ -96,3 +96,23 @@ def format_date_str(text_date: str, format: str) -> datetime.date:
         f"Date not parsed: {text_date}. Format given {format}. Using fallback"
     )
     return datetime.today().date()
+
+def secure_date_range(date_base_str: str, date_cutoff_str: str):
+    """
+    Adjusts the date range provided in string format.
+
+    Converts the given base date and cutoff date strings into datetime objects using a specific format.
+    If both dates are identical, it subtracts one day from the cutoff date to ensure a proper range.
+
+    Args:
+        date_base_str (str): Base date in string format.
+        date_cutoff_str (str): Cutoff date in string format.
+
+    Returns:
+        tuple: A tuple containing the base date and the adjusted cutoff date as datetime objects.
+    """
+    date_base = format_date_str(date_base_str, "%d-%m-%Y")
+    date_cutoff = format_date_str(date_cutoff_str, "%d-%m-%Y")
+    if date_base == date_cutoff:
+        date_cutoff = date_base - timedelta(days=1)
+    return date_base, date_cutoff
