@@ -29,6 +29,32 @@ async def retrieve_article(article_id: str) -> dict:
         article = response.json()
         logger.debug(f"Retrieved article {article_id} successfully")
         return article
+    
+async def retrieve_article_content(article_id: str) -> str:
+        """
+        Retrieves an article from the storage service by its ID and concatenates its title and paragraphs.
+        
+        Args:
+            article_id (str): The unique identifier for the article to retrieve.
+        
+        Returns:
+            str: A string containing the article's title and paragraphs.
+        
+        Raises:
+            Exception: If the article retrieval fails (non-200 response).
+        """
+        logger.debug(f"Requesting article {article_id} from Storage Service")
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{STORAGE_SERVICE_URL}/articles/{article_id}")
+            if response.status_code != 200:
+                logger.error(f"Failed to retrieve article {article_id}: {response.text}")
+                raise Exception(f"Failed to retrieve article {article_id}")
+            article = response.json()
+            title = article.get("Title", "")
+            paragraphs = article.get("Paragraphs", [])
+            content = title + "\n" + "\n".join(paragraphs)
+            logger.debug(f"Retrieved article content {article_id} successfully")
+            return content
 
 async def update_article(article_id: str, updated_data: dict) -> dict:
     """

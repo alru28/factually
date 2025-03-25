@@ -1,6 +1,21 @@
 name: factually
 
 services:
+  transformation-service:
+    build: ./transformation-service
+    environment:
+      - STORAGE_SERVICE_URL=http://storage-service:8000
+      - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
+    ports:
+      - "8003:8000"
+    networks:
+      - factually-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      storage-service:
+        condition: service_started
+
   orchestrator-service:
     build: ./orchestrator-service
     environment:
@@ -15,6 +30,8 @@ services:
       extraction-service:
         condition: service_started
       storage-service:
+        condition: service_started
+      transformation-service:
         condition: service_started
       
   extraction-service:
