@@ -181,3 +181,12 @@ class NLPProcessor:
         normalized_scores = {label: score / total for label, score in aggregated_scores.items()}
         final_label = max(normalized_scores, key=normalized_scores.get)
         return {"label": final_label, "scores": normalized_scores}
+    
+_nlp_instance: NLPProcessor = None
+
+def get_nlp_processor() -> NLPProcessor:
+    global _nlp_instance
+    if _nlp_instance is None:
+        _nlp_instance = NLPProcessor()
+        logger.info("Initialized NLPProcessor singleton instance.")
+    return _nlp_instance

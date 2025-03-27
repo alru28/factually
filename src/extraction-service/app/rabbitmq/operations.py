@@ -17,14 +17,14 @@ async def publish_message(message: dict, routing_key: str):
 
 async def handle_message(message):
     message_dict = json.loads(message.body.decode('utf-8'))
-    logger.info("Processing message from RabbitMQ")
-    logger.info(f"Message content: {message_dict}")
 
     payload = message_dict.get("payload")
     sources = payload.get("sources")
     date_base_str = payload.get("date_base")
     date_cutoff_str = payload.get("date_cutoff")
     correlation_id = message_dict.get("correlation_id")
+
+    logger.info(f"Processing extraction request from RabbitMQ | CorrelationID: {correlation_id}")
     
     required = {
         "sources": sources,
@@ -63,16 +63,19 @@ async def handle_message(message):
     logger.debug(f"Scraped content for {len(articles_content)} articles")
 
     try:
-        await post_articles_bulk(articles_content)
+        created_articles = await post_articles_bulk(articles_content)
     except Exception as e:
         logger.error(f"Error posting articles: {e}")
         return
-     
+    
+    article_ids = [article.get("id") for article in created_articles]
+
     try:
         message_payload = {
         "correlation_id":correlation_id,
         "status":"extraction_complete",
-        "articles_count":len(articles_content),
+        "article_ids": article_ids,
+        "article_count": len(article_ids),
         } 
         await publish_message(message_payload, 'completion')
     except Exception as e:

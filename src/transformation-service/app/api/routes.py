@@ -7,12 +7,12 @@ from app.models import (
 ) 
 from app.rabbitmq.operations import publish_message
 from app.utils.logger import DefaultLogger
-from app.nlp.processor import NLPProcessor
+from app.nlp.processor import get_nlp_processor
 
 
 logger = DefaultLogger("TransformationService").get_logger()
 
-nlp_processor = NLPProcessor()
+nlp_processor = get_nlp_processor()
 
 router = APIRouter()
 

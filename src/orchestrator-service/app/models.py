@@ -3,22 +3,6 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import date
 
-class PipelineTask(BaseModel):
-    name: str = Field(
-        ...,
-        description="Name of the task (e.g., 'extraction', 'transformation', 'storage')"
-    )
-    parameters: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Task-specific parameters (overrides or additional data)"
-    )
-
-class Pipeline(BaseModel):
-    tasks: List[PipelineTask] = Field(
-        ...,
-        description="Ordered list of tasks for the workflow"
-    )
-
 class WorkflowRequest(BaseModel):
     workflow_type: str = Field(
         ...,
@@ -34,10 +18,6 @@ class WorkflowRequest(BaseModel):
     )
     date_base: date = Field(..., description="Start date for scraping")
     date_cutoff: date = Field(..., description="End date for scraping")
-    pipeline: Optional[Pipeline] = Field(
-        default=None,
-        description="Optional pipeline of tasks. If provided, tasks in this list will be executed sequentially."
-    )
 
 class WorkflowResponse(BaseModel):
     correlation_id: UUID

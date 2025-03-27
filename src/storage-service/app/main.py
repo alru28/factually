@@ -168,7 +168,7 @@ async def get_article(article_id: str):
     if article is None:
         logger.error(f"Article with id {article_id} not found")
         raise HTTPException(status_code=404, detail="Article not found")
-    logger.debug(f"Article retrieved: {article}")
+    logger.debug(f"Article retrieved: {article_id}")
     return article_helper(article)
 
 @app.put("/articles/{article_id}", response_model=Article)
