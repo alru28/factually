@@ -109,34 +109,3 @@ async def close_rabbitmq_client():
         logger.info("Closed RabbitMQ singleton client.")
 
 _instance: RabbitMQClient = None
-
-# Example usage in a microservice (e.g., orchestrator.py)
-if __name__ == "__main__":
-    import json
-
-    async def handle_task_completion(message):
-        body = json.loads(message.body.decode('utf-8'))
-        print("Received task completion:", body)
-        await message.ack()
-
-    async def main():
-        # Define multiple queues with their routing keys.
-        queues = {
-            "orchestrator_queue": "task.completion",
-            "extraction_queue": "extraction.task",
-            "transformation_queue": "transformation.task"
-        }
-        client = RabbitMQClient(
-            rabbitmq_url="amqp://guest:guest@localhost/",
-            exchange_name="service_exchange",
-            queues=queues
-        )
-        await client.connect()
-        # Start consuming from orchestrator_queue
-        await client.consume("orchestrator_queue", handle_task_completion)
-        # Example: publish an extraction task
-        await client.publish({"task": "extraction", "pipeline_id": "123"}, routing_key="extraction.task")
-        # Keep the service running indefinitely
-        await asyncio.Future()
-
-    asyncio.run(main())
