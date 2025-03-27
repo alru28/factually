@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
         client = await get_rabbitmq_client()
         logger.info("RabbitMQ Client connected | Queues and Exchange declared")
 
-        asyncio.create_task(client.consume('tasks_completion', callback=handle_message))
+        asyncio.create_task(client.consume('tasks_transformation', callback=handle_message))
     except Exception as e:
         logger.error(f"Error during RabbitMQ initialization: {e}")
 
