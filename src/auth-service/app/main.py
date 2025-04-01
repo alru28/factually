@@ -10,8 +10,12 @@ logger = DefaultLogger("AuthService").get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables declared successfully.")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {e}")
+        raise
     # App running
     yield
 
