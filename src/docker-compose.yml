@@ -4,7 +4,9 @@ services:
   auth-service:
     build: ./auth-service
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/auth_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
+      - MAILHOG_HOST=mailhog
+      - MAILHOG_PORT=1025
     ports:
       - "8004:8000"
     networks:
@@ -163,6 +165,19 @@ services:
       - factually-network
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - factually-network
 
 volumes:
   mongodb_data:

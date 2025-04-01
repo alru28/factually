@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.db.schema import User, APIKey
+import datetime
 from app.utils.security import hash_password, generate_token, generate_api_key
 from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
 
@@ -21,7 +22,8 @@ def create_user(db: Session, user: UserCreate):
 
 def create_api_key(db: Session, user_id: int):
     key = generate_api_key()
-    api_key = APIKey(key=key, user_id=user_id)
+    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=3)
+    api_key = APIKey(key=key, user_id=user_id, expires_at=expires_at)
     db.add(api_key)
     db.commit()
     db.refresh(api_key)

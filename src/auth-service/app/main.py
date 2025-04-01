@@ -1,15 +1,17 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanagerç
 from contextlib import asynccontextmanager
 from app.utils.logger import DefaultLogger
 from app.api.routes import router as auth_router
+from app.db.database import engine
+from app.db.schema import Base
 import uvicorn
 
 logger = DefaultLogger("AuthService").get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
     # App running
     yield
 
