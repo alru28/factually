@@ -1,6 +1,17 @@
 name: factually
 
 services:
+  auth-service:
+    build: ./auth-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/auth_db
+    ports:
+      - "8004:8000"
+    networks:
+      - factually-network
+    depends_on:
+      postgres:
+        condition: service_healthy
   transformation-service:
     build: ./transformation-service
     environment:
@@ -140,10 +151,24 @@ services:
       timeout: 10s
       retries: 5
 
+  postgres:
+    image: postgres:15.2-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    networks:
+      - factually-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 volumes:
   mongodb_data:
   ollama_data:
   weaviate_data:
+  postgres_data:
 
 networks:
   factually-network:

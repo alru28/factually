@@ -1,0 +1,56 @@
+from sqlalchemy.orm import Session
+from app.db.schema import User, APIKey
+from app.utils.security import hash_password, generate_token, generate_api_key
+from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+def create_user(db: Session, user: UserCreate):
+    hashed_pw = hash_password(user.password)
+    verification_token = generate_token()
+    db_user = User(
+        email=user.email,
+        hashed_password=hashed_pw,
+        email_verification_token=verification_token
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def create_api_key(db: Session, user_id: int):
+    key = generate_api_key()
+    api_key = APIKey(key=key, user_id=user_id)
+    db.add(api_key)
+    db.commit()
+    db.refresh(api_key)
+    return api_key
+
+def verify_email(db: Session, token: str):
+    user = db.query(User).filter(User.email_verification_token == token).first()
+    if user:
+        user.is_verified = True
+        user.email_verification_token = None
+        db.commit()
+    return user
+
+def create_password_reset_token(db: Session, email: str):
+    user = get_user_by_email(db, email)
+    if user:
+        token = generate_token()
+        user.password_reset_token = token
+        db.commit()
+        db.refresh(user)
+        return token
+    return None
+
+def reset_password(db: Session, token: str, new_password: str):
+    user = db.query(User).filter(User.password_reset_token == token).first()
+    if user:
+        user.hashed_password = hash_password(new_password)
+        user.password_reset_token = None
+        db.commit()
+        db.refresh(user)
+        return user
+    return None

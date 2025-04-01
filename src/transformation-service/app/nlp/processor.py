@@ -53,14 +53,14 @@ class NLPProcessor:
         chunks = self.chunk_text(text=content, task="summarization")
 
         partial_summaries = [
-            self.summarizer(chunk, max_length=200, min_length=100, do_sample=False)[0]["summary_text"]
+            self.summarizer(chunk, max_length=300, min_length=50, do_sample=False)[0]["summary_text"]
             for chunk in chunks
         ]
 
         combined_summary = " ".join(partial_summaries)
         
         if len(self.summarizer_tokenizer.tokenize(combined_summary)) > 1024:
-            final_summary = self.summarizer(combined_summary, max_length=400, min_length=200, do_sample=False)[0]["summary_text"]
+            final_summary = self.summarizer(combined_summary, max_length=400, min_length=100, do_sample=False)[0]["summary_text"]
         else:
             final_summary = combined_summary
 
