@@ -70,6 +70,11 @@ class Article(ArticleBase):
         default_factory=list,
         description="List of references included within the text of the article",
     )
+    Summary: Optional[str] = Field(None, description="A brief summary of the article")
+    Sentiment: Optional[str] = Field(None, description="Sentiment analysis of the article (e.g., positive, neutral, negative)")
+    Classification: Optional[List[str]] = Field(
+        default_factory=list, description="Classification tags or categories for the article"
+    )
 
 
 class Source(BaseModel):
@@ -140,9 +145,17 @@ def source_helper(source) -> Source:
     return Source.model_validate(source)
 
 def article_to_weaviate_object(article: Article) -> dict:
-    content = article.Title
+    content_parts = [article.Title]
+    if article.Summary:
+        content_parts.append(f"Summary: {article.Summary}")
+    if article.Sentiment:
+        content_parts.append(f"Sentiment: {article.Sentiment}")
+    if article.Classification:
+        content_parts.append(f"Classification: {', '.join(article.Classification)}")
     if article.Paragraphs:
-        content += "\n" + "\n".join(article.Paragraphs)
+        content_parts.extend(article.Paragraphs)
+    
+    content = "\n".join(content_parts)
     
     return {
         "Title": article.Title,
