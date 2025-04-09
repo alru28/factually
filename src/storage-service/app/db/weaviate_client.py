@@ -50,6 +50,9 @@ def create_article_schema():
                 properties=[
                     wvcc.Property(name='Title', data_type=wvcc.DataType.TEXT, description="Title of the article"),
                     wvcc.Property(name='Content', data_type=wvcc.DataType.TEXT, description="Combined article content"),
+                    wvcc.Property(name='Summary', data_type=wvcc.DataType.TEXT, description="Brief summary of the article"),
+                    wvcc.Property(name='Sentiment', data_type=wvcc.DataType.TEXT, description="Sentiment analysis of the article"),
+                    wvcc.Property(name='Classification', data_type=wvcc.DataType.TEXT, description="Classification labels for the article"),
                     wvcc.Property(name='Date', data_type=wvcc.DataType.TEXT, description="Publication date"), # If I use the DataType.DATE format, it expects a string with the date in a RFC 3339 timestamps
                     wvcc.Property(name='Source', data_type=wvcc.DataType.TEXT, description="URL of the source"),
                 ]
