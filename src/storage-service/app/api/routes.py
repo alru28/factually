@@ -121,7 +121,7 @@ async def get_article(article_id: str):
     return article_helper(article)
 
 @router.put("/articles/{article_id}", response_model=Article)
-async def update_article(article_id: str, article: Article):
+async def update_article(article_id: str, article: Article, background_tasks: BackgroundTasks):
     """
     Updates an existing article identified by its ID.
     """
@@ -137,6 +137,7 @@ async def update_article(article_id: str, article: Article):
     )
     if result.modified_count == 1:
         updated_article = await db["articles"].find_one({"_id": valid_id})
+        background_tasks.add_task(sync_articles_to_weaviate, [updated_article])
         logger.info(f"Article with id {article_id} updated successfully")
         return article_helper(updated_article)
     else:

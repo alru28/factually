@@ -145,21 +145,21 @@ def source_helper(source) -> Source:
     return Source.model_validate(source)
 
 def article_to_weaviate_object(article: Article) -> dict:
+    """
+    Constructs a Weaviate object from an Article instance.
+    It includes enriched content properties such as Summary, Sentiment, and Classification.
+    """
     content_parts = [article.Title]
-    if article.Summary:
-        content_parts.append(f"Summary: {article.Summary}")
-    if article.Sentiment:
-        content_parts.append(f"Sentiment: {article.Sentiment}")
-    if article.Classification:
-        content_parts.append(f"Classification: {', '.join(article.Classification)}")
     if article.Paragraphs:
         content_parts.extend(article.Paragraphs)
-    
     content = "\n".join(content_parts)
     
     return {
         "Title": article.Title,
         "Content": content,
+        "Summary": article.Summary or "None",
+        "Sentiment": article.Sentiment or "None",
+        "Classification": ", ".join(article.Classification) if article.Classification else "None",
         "Date": article.Date,
         "Source": str(article.Source),
     }
