@@ -69,6 +69,8 @@ def sync_articles_to_weaviate(articles_list: List[Article]):
     try:
         with articles_collection.batch.dynamic() as batch:
             for article_obj in articles_list:
+                if isinstance(article_obj, dict):
+                    article_obj = Article.parse_obj(article_obj)
                 obj = article_to_weaviate_object(article_obj)
                 batch.add_object(obj, uuid=article_obj.id)
         logger.info(f"Batch inserted {len(articles_list)} articles into Weaviate.")

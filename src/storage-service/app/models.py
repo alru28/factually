@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import date
 from uuid import uuid4
 from pydantic import BaseModel, Field, HttpUrl, field_validator
@@ -144,11 +144,14 @@ def source_helper(source) -> Source:
     del source["_id"]
     return Source.model_validate(source)
 
-def article_to_weaviate_object(article: Article) -> dict:
+def article_to_weaviate_object(article: Union[Article, dict]) -> dict:
     """
-    Constructs a Weaviate object from an Article instance.
-    It includes enriched content properties such as Summary, Sentiment, and Classification.
+    Converts an Article instance (or dict representation) into a Weaviate-compatible object.
     """
+    # If article is a dict, convert to the Pydantic Article model.
+    if isinstance(article, dict):
+        article = Article.parse_obj(article)
+
     content_parts = [article.Title]
     if article.Paragraphs:
         content_parts.extend(article.Paragraphs)
