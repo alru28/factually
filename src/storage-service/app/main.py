@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 from app.db.mongo import db
-from app.db.weaviate_client import create_article_schema
+from app.db.weaviate_client import create_article_schema, WeaviateAsyncClientSingleton
 from app.api.routes import router
 import requests
 import uvicorn
@@ -51,10 +51,15 @@ async def lifespan(app: FastAPI):
     await create_indexes()
     logger.info("Startup event: Initializing Ollama models")
     check_and_pull_model()
-    logger.info("Startup event: Initializing Weaviate schema")
-    create_article_schema()    
+    logger.info("Startup event: Initializing Weaviate and Article schema")
+    await WeaviateAsyncClientSingleton.init_client()
+    await create_article_schema()    
+    
     # App running
     yield
+
+    logger.info("Shutdown event: Closing Weaviate async client")
+    await WeaviateAsyncClientSingleton.close_client()
 
 app = FastAPI(lifespan=lifespan, title="Storage Service", openapi_url="/openapi.json")
 app.include_router(router)

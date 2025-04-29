@@ -5,7 +5,7 @@ from typing import List
 import uuid
 from app.models import Article, Source, SearchResult, article_helper, source_helper
 from app.db.mongo import db
-from app.db.weaviate_client import create_article_schema, get_weaviate_client, sync_articles_to_weaviate
+from app.db.weaviate_client import WeaviateAsyncClientSingleton, sync_articles_to_weaviate
 from app.utils.logger import DefaultLogger
 
 router = APIRouter()
@@ -266,9 +266,8 @@ async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
     """
     Search articles using Weaviate's hybrid search.
     """
-    client = get_weaviate_client()
-    articles = client.collections.get('Article')
-    response = articles.query.hybrid(
+    articles = WeaviateAsyncClientSingleton.get_client().collections.get('Article')
+    response = await articles.query.hybrid(
         query=query,
         alpha=alpha,
         limit=limit
@@ -277,12 +276,14 @@ async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
     results = []
     for article in response.objects:
         results.append({
-            'Title': article.properties.title,
-            'Date': article.properties.date,
-            'Content': article.properties.content,
-            'Source': article.properties.source
+            'Title': article.properties['title'],
+            'Date': article.properties['date'],
+            'Content': article.properties['content'],
+            'Source': article.properties['source'],
+            'Summary': article.properties['summary'],
+            'Sentiment': article.properties['sentiment'],
+            'Classification': article.properties['classification'],
         })
-    client.close()
     return results
 
 @router.get("/health")

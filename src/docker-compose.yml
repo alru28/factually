@@ -28,6 +28,13 @@ services:
         condition: service_healthy
       storage-service:
         condition: service_started
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   orchestrator-service:
     build: ./orchestrator-service
@@ -134,6 +141,7 @@ services:
       ENABLE_API_BASED_MODULES: 'true'
       ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
       CLUSTER_HOSTNAME: 'node1'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-ollama'
     networks:
       - factually-network
 

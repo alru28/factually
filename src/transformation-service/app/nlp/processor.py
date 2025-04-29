@@ -2,6 +2,7 @@ from transformers import pipeline, AutoTokenizer
 from collections import Counter
 from app.utils.services import retrieve_article_content
 from app.utils.logger import DefaultLogger
+import torch
 
 
 logger = DefaultLogger("TransformationService").get_logger()
@@ -20,9 +21,12 @@ class NLPProcessor:
         Initializes the NLPProcessor with pipelines and tokenizers for each task.
         Uses task-specific models for summarization, sentiment analysis, and classification.
         """
-        self.summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-        self.sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-        self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+        device = 0 if torch.cuda.is_available() else -1
+
+        self.summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=device)
+        self.sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english", device=device)
+        self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
         self.summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
         self.sentiment_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
         self.classify_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-mnli")
@@ -163,7 +167,7 @@ class NLPProcessor:
             Exception: If the article has no content.
         """
         if candidate_labels is None:
-            candidate_labels = ["economics", "sports", "entertainment", "politics", "technology", "culture", ""]
+            candidate_labels = ["economics", "sports", "entertainment", "politics", "technology", "culture", "artificial intelligence"]
     
         content = await retrieve_article_content(article_id)
         if not content:
@@ -173,7 +177,7 @@ class NLPProcessor:
         
         aggregated_scores = {label: 0 for label in candidate_labels}
         for chunk in chunks:
-            result = self.classifier(chunk, candidate_labels)
+            result = self.classifier(chunk, candidate_labels, truncate=True)
             for label, score in zip(result["labels"], result["scores"]):
                 aggregated_scores[label] += score
         

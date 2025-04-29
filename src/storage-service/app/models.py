@@ -158,11 +158,11 @@ def article_to_weaviate_object(article: Union[Article, dict]) -> dict:
     content = "\n".join(content_parts)
     
     return {
-        "Title": article.Title,
-        "Content": content,
-        "Summary": article.Summary or "None",
-        "Sentiment": article.Sentiment or "None",
-        "Classification": ", ".join(article.Classification) if article.Classification else "None",
-        "Date": article.Date,
-        "Source": str(article.Source),
+        "title": article.Title,
+        "content": content,
+        "summary": article.Summary or "None",
+        "sentiment": article.Sentiment or "None",
+        "classification": ", ".join(article.Classification) if article.Classification else "None",
+        "date": article.Date,
+        "source": str(article.Source),
     }
