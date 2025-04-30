@@ -8,7 +8,12 @@ class SearchResult(BaseModel):
     Summary: str
     Source: str
 
+class EvidenceItem(BaseModel):
+    Title: str
+    Source: str
+    Date: str
+
 class VerificationResult(BaseModel):
-    claim: str
-    verdict: str  # 'true', 'false', or 'undetermined'
-    evidence: List[str]
+    Claim: str
+    Verdict: str
+    Evidence: List[EvidenceItem]

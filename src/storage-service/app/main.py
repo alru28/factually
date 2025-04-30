@@ -19,7 +19,6 @@ def check_and_pull_model():
         response = requests.get(f"{OLLAMA_CONNECTION_STRING}/api/tags")
         if response.status_code == 200:
             models = response.json().get("models", [])
-            print(f"MODELOS: {models}")
             if "llama3.2:1b" not in models:
                 pull_response = requests.post(f"{OLLAMA_CONNECTION_STRING}/api/pull", json={"name": "llama3.2:1b"})
                 if pull_response.status_code != 200:

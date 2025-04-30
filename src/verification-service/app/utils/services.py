@@ -26,7 +26,7 @@ async def search_articles(query: str, retrieve_params: dict = None) -> List[Sear
     """
     logger.debug(f"Searching articles with query: {query}")
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{STORAGE_SERVICE_URL}/search", params={"query": query, **(retrieve_params or {})})
+        response = await client.get(f"{STORAGE_SERVICE_URL}/search/", params={"query": query, **(retrieve_params or {})})
         if response.status_code != 200:
             logger.error(f"Failed to search articles: {response.text}")
             raise Exception(f"Failed to search articles")

@@ -1,6 +1,19 @@
 name: factually
 
 services:
+  verification-service:
+    build: ./verification-service
+    environment:
+      - OLLAMA_MODEL=qwen3:4b
+      - OLLAMA_CONNECTION_STRING=http://ollama:11434
+      - STORAGE_SERVICE_URL=http://storage-service:8000
+    ports:
+      - "8005:8000"
+    networks:
+      - factually-network
+    depends_on:
+      storage-service:
+        condition: service_started
   auth-service:
     build: ./auth-service
     environment:

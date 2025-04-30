@@ -6,29 +6,23 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from typing import List
 from app.utils.services import search_articles
+from app.models import VerificationResult, EvidenceItem
+import re
 
 logger = DefaultLogger("VerificationService").get_logger()
 
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'cogito:8b')
-
-class VerificationResult(BaseModel):
-    claim: str
-    verdict: str  # 'true', 'false', or 'undetermined'
-    evidence: List[str]
-
-class Deps(BaseModel):
-    retrieve_params: dict
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'qwen3:4b')
+OLLAMA_CONNECTION_STRING = os.getenv('OLLAMA_CONNECTION_STRING', 'http://ollama:11434')
 
 class ClaimVerifier:
     _instance: "ClaimVerifier" = None
 
-    def __init__(self, deps: Deps):
+    def __init__(self):
         ollama_model = OpenAIModel(
-            model_name=OLLAMA_MODEL, provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+            model_name=OLLAMA_MODEL, provider=OpenAIProvider(base_url=OLLAMA_CONNECTION_STRING + "/v1")
         )
         self.agent = Agent(
             ollama_model,
-            deps_type=Deps,
             result_type=VerificationResult,
             instrument=True,
             system_prompt=(
@@ -37,46 +31,22 @@ class ClaimVerifier:
             ),
         )
 
-        # TOOLS
-        @self.agent.tool
-        async def retrieve(ctx: RunContext[Deps], query: str) -> str:
-            articles = await search_articles(query, ctx.deps.retrieve_params)
-            snippets = []
-            for idx, art in enumerate(articles, 1):
-                snippets.append(
-                    f"Article {idx}:\n"
-                    f"  Title: {art.Title}\n"
-                    f"  Date:  {art.Date}\n"
-                    f"  Summary: {art.Summary}\n"
-                    f"  Source: {art.Source}"
-                )
-            return "\n\n".join(snippets)
-
-        @self.agent.tool
-        async def verify_claim(
-            ctx: RunContext[Deps], claim: str, context: str
-        ) -> VerificationResult:
-            prompt = (
-                f"Claim: {claim}\n\n"
-                f"News Context:\n{context}\n\n"
-                "Based on the above, is the claim True, False, or Undetermined? "
-                "List up to three supporting evidence passages and reference them."
-            )
-            # ESTO ES PLACEHOLDER
-            return await ctx.run_llm(prompt)
-
-        self.deps = deps
+        self.prompt_template = """
+            Claim: {claim}\n
+            Context: {context}\n
+            Based on the above, is the claim True, False, or Undetermined?
+            List up to three supporting evidence passages and reference them if you find them related to the claim."
+        """
 
     @classmethod
-    async def init_verifier(cls, retrieve_params: dict) -> "ClaimVerifier":
+    async def init_verifier(cls) -> "ClaimVerifier":
         if cls._instance is None:
-            deps = Deps(retrieve_params=retrieve_params)
-            cls._instance = ClaimVerifier(deps)
+            cls._instance = ClaimVerifier()
             logger.info("ClaimVerifier initialized successfully")
         return cls._instance
 
     @classmethod
-    def get_client(cls) -> "ClaimVerifier":
+    def get_verifier(cls) -> "ClaimVerifier":
         if cls._instance is None:
             raise Exception("ClaimVerifier not initialized; call init_verifier first")
         return cls._instance
@@ -87,10 +57,40 @@ class ClaimVerifier:
         and returns the final VerificationResult.
         """
         # ESTO ES PLACEHOLDER
-        context = await self.agent.invoke_tool("retrieve", search_query=claim, deps=self.deps)
+        articles = await search_articles(claim)
+        snippets = []
+        for idx, art in enumerate(articles, 1):
+            snippets.append(
+                f"Article {idx}:\n"
+                f"  Title: {art['Title']}\n"
+                f"  Date:  {art['Date']}\n"
+                f"  Summary: {art['Summary']}\n"
+                f"  Source: {art['Source']}"
+            )
+        context = "\n\n".join(snippets)
 
-        result: VerificationResult = await self.agent.invoke_tool(
-            "verify_claim", claim=claim, context=context, deps=self.deps
-        )
-        logger.info(f"Claim verification result: {result.json()}")
-        return result
+        result = await self.agent.run(self.prompt_template.format(claim=claim, context=context))
+        verification: VerificationResult = result.output
+
+        # REFORMATEAR EVIDENCIAS
+        structured: List[EvidenceItem] = []
+        for ev in verification.Evidence:
+            m = re.match(r"Article\s+(\d+):", ev)
+            if m:
+                idx = int(m.group(1)) - 1
+                art = articles[idx]
+                structured.append(
+                    EvidenceItem(
+                        Title=art["Title"],
+                        Source=art["Source"],
+                        Date=art["Date"]
+                    )
+                )
+            else:
+                # If the LLM gave an unsupported snippet, you could skip or
+                # fill with placeholders; here we just drop it.
+                continue
+
+        verification.Evidence = structured
+        logger.info(f"Claim verification result: {verification.Verdict}")
+        return verification
