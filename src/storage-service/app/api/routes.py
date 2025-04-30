@@ -262,7 +262,7 @@ async def delete_source(source_id: str):
         raise HTTPException(status_code=404, detail="Source not found")
 
 @router.get("/search/", response_model=List[SearchResult])
-async def search_articles(query: str, alpha: float = 0.5, limit: int = 5):
+async def search_articles(query: str, alpha: float = 0.5, limit: int = 3):
     """
     Search articles using Weaviate's hybrid search.
     """

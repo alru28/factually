@@ -99,7 +99,7 @@ async def sync_articles_to_weaviate(articles_list: List[Article]):
                     properties = obj
                 )
             else:
-                logger.debug(f"Article {article_obj.id} doesn't exists in Weaviate during sync, trying to insert.")
+                logger.debug(f"Article {article_obj.id} doesn't exist in Weaviate during sync, trying to insert.")
                 await articles_collection.data.insert(
                     uuid = article_obj.id,
                     properties = obj

@@ -106,7 +106,7 @@ class Source(BaseModel):
 class SearchResult(BaseModel):
     Title: str
     Date: str
-    Content: str
+    Summary: str
     Source: str
 
 def article_helper(article) -> Article:
