@@ -1,6 +1,26 @@
 name: factually
 
 services:
+  gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - verification-service
+      - storage-service
+      - transformation-service
+      - orchestrator-service
+      - extraction-service
+    environment:
+      - VERIFICATION_SERVICE_URL=http://verification-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - STORAGE_SERVICE_URL=http://storage-service:8000
+      - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
+      - EXTRACTION_SERVICE_URL=http://extraction-service:8000
+      - TRANSFORMATION_SERVICE_URL=http://transformation-service:8000
+    networks:
+      - factually-network
   verification-service:
     build: ./verification-service
     environment:
@@ -74,7 +94,7 @@ services:
       - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
-      - "8000:8000"
+      - "8006:8000"
     networks:
       - factually-network
     depends_on:

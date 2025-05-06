@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from app.utils.logger import DefaultLogger
 from app.db.database import get_db
 from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
@@ -58,9 +58,9 @@ async def request_api_key(credentials: LoginRequest, db: Session = Depends(get_d
 
 # API Key Validation Endpoint
 @router.get("/validate")
-async def validate_api_key(key: str, db: Session = Depends(get_db)):
+async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: Session = Depends(get_db)):
     logger.info("Received API key validation request")
-    api_key = db.query(APIKey).filter(APIKey.key == key).first()
+    api_key = db.query(APIKey).filter(APIKey.key == x_api_key).first()
     if not api_key:
         logger.error("API Key validation failed: Invalid API key")
         raise HTTPException(status_code=401, detail="Invalid API key")
