@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from typing import List
 import uuid
 from app.models import Article, Source, SearchResult, article_helper, source_helper
-from app.db.mongo import db
+from app.db.mongo import MongoClientSingleton
 from app.db.weaviate_client import WeaviateAsyncClientSingleton, sync_articles_to_weaviate
 from app.utils.logger import DefaultLogger
 
@@ -27,14 +27,14 @@ async def create_article(article: Article, background_tasks: BackgroundTasks):
             raise HTTPException(status_code=400, detail="Invalid article id format.")
         article_data["_id"] = article_data.pop("id")
     try:
-        new_article = await db["articles"].insert_one(article_data)
+        new_article = await MongoClientSingleton.get_db()["articles"].insert_one(article_data)
         logger.debug(f"Inserted article with id: {new_article.inserted_id}")
     except DuplicateKeyError:
         logger.error("Duplicate article insertion attempted", exc_info=True)
         raise HTTPException(
             status_code=400, detail="Article with this Link already exists"
         )
-    created_article = await db["articles"].find_one({"_id": new_article.inserted_id})
+    created_article = await MongoClientSingleton.get_db()["articles"].find_one({"_id": new_article.inserted_id})
     article_obj = article_helper(created_article)
     background_tasks.add_task(sync_articles_to_weaviate, [article_obj])
     logger.info("Article created and synced with weaviate successfully")
@@ -57,7 +57,7 @@ async def create_articles_bulk(articles: List[Article], background_tasks: Backgr
             article_data["_id"] = article_data.pop("id")
         
     try:
-        result = await db["articles"].insert_many(articles_data, ordered=False)
+        result = await MongoClientSingleton.get_db()["articles"].insert_many(articles_data, ordered=False)
         logger.debug(f"Bulk inserted {len(result.inserted_ids)} articles")
     except DuplicateKeyError:
         logger.error("Duplicate key error in bulk article insertion", exc_info=True)
@@ -82,7 +82,7 @@ async def create_articles_bulk(articles: List[Article], background_tasks: Backgr
 
     created_articles = []
     for _id in result.inserted_ids:
-        article_doc = await db["articles"].find_one({"_id": _id})
+        article_doc = await MongoClientSingleton.get_db()["articles"].find_one({"_id": _id})
         created_articles.append(article_helper(article_doc))
     logger.info(
         f"Bulk article insertion completed successfully. Inserted {len(created_articles)} articles"
@@ -97,7 +97,7 @@ async def list_articles():
     """
     logger.info("Received request to list all articles")
     articles = []
-    async for article in db["articles"].find():
+    async for article in MongoClientSingleton.get_db()["articles"].find():
         articles.append(article_helper(article))
     logger.debug(f"Retrieved {len(articles)} articles")
     return articles
@@ -113,7 +113,7 @@ async def get_article(article_id: str):
     except ValueError:
         logger.error(f"Invalid article id format: {article_id}")
         raise HTTPException(status_code=400, detail="Invalid article id format.")
-    article = await db["articles"].find_one({"_id": valid_id})
+    article = await MongoClientSingleton.get_db()["articles"].find_one({"_id": valid_id})
     if article is None:
         logger.error(f"Article with id {article_id} not found")
         raise HTTPException(status_code=404, detail="Article not found")
@@ -132,11 +132,11 @@ async def update_article(article_id: str, article: Article, background_tasks: Ba
         logger.error(f"Invalid article id format: {article_id}")
         raise HTTPException(status_code=400, detail="Invalid article id format.")
     article_data = jsonable_encoder(article)
-    result = await db["articles"].update_one(
+    result = await MongoClientSingleton.get_db()["articles"].update_one(
         {"_id": valid_id}, {"$set": article_data}
     )
     if result.modified_count == 1:
-        updated_article = await db["articles"].find_one({"_id": valid_id})
+        updated_article = await MongoClientSingleton.get_db()["articles"].find_one({"_id": valid_id})
         background_tasks.add_task(sync_articles_to_weaviate, [updated_article])
         logger.info(f"Article with id {article_id} updated successfully")
         return article_helper(updated_article)
@@ -155,7 +155,7 @@ async def delete_article(article_id: str):
     except ValueError:
         logger.error(f"Invalid article id format: {article_id}")
         raise HTTPException(status_code=400, detail="Invalid article id format.")
-    result = await db["articles"].delete_one({"_id": valid_id})
+    result = await MongoClientSingleton.get_db()["articles"].delete_one({"_id": valid_id})
     if result.deleted_count == 1:
         logger.info(f"Article with id {article_id} deleted successfully")
         return
@@ -178,14 +178,14 @@ async def create_source(source: Source):
             raise HTTPException(status_code=400, detail="Invalid source id format.")
         source_data["_id"] = source_data.pop("id")
     try:
-        new_source = await db["sources"].insert_one(source_data)
+        new_source = await MongoClientSingleton.get_db()["sources"].insert_one(source_data)
         logger.debug(f"Inserted source with _id: {new_source.inserted_id}")
     except DuplicateKeyError:
         logger.error("Duplicate source insertion attempted", exc_info=True)
         raise HTTPException(
             status_code=400, detail="Source with this base_url already exists"
         )
-    created_source = await db["sources"].find_one({"_id": new_source.inserted_id})
+    created_source = await MongoClientSingleton.get_db()["sources"].find_one({"_id": new_source.inserted_id})
     logger.info("Source created successfully")
     return source_helper(created_source)
 
@@ -196,7 +196,7 @@ async def list_sources():
     """
     logger.info("Received request to list all sources")
     sources_list = []
-    async for source in db["sources"].find():
+    async for source in MongoClientSingleton.get_db()["sources"].find():
         sources_list.append(source_helper(source))
     logger.debug(f"Retrieved {len(sources_list)} sources")
     return sources_list
@@ -212,7 +212,7 @@ async def get_source(source_id: str):
     except ValueError:
         logger.error(f"Invalid source id format: {source_id}")
         raise HTTPException(status_code=400, detail="Invalid source id format.")
-    source = await db["sources"].find_one({"_id": valid_id})
+    source = await MongoClientSingleton.get_db()["sources"].find_one({"_id": valid_id})
     if source is None:
         logger.error(f"Source with id {source_id} not found")
         raise HTTPException(status_code=404, detail="Source not found")
@@ -231,11 +231,11 @@ async def update_source(source_id: str, source: Source):
         logger.error(f"Invalid source id format: {source_id}")
         raise HTTPException(status_code=400, detail="Invalid source id format.")
     source_data = jsonable_encoder(source)
-    result = await db["sources"].update_one(
+    result = await MongoClientSingleton.get_db()["sources"].update_one(
         {"_id": valid_id}, {"$set": source_data}
     )
     if result.modified_count == 1:
-        updated_source = await db["sources"].find_one({"_id": valid_id})
+        updated_source = await MongoClientSingleton.get_db()["sources"].find_one({"_id": valid_id})
         logger.info(f"Source with id {source_id} updated successfully")
         return source_helper(updated_source)
     else:
@@ -253,7 +253,7 @@ async def delete_source(source_id: str):
     except ValueError:
         logger.error(f"Invalid source id format: {source_id}")
         raise HTTPException(status_code=400, detail="Invalid source id format.")
-    result = await db["sources"].delete_one({"_id": valid_id})
+    result = await MongoClientSingleton.get_db()["sources"].delete_one({"_id": valid_id})
     if result.deleted_count == 1:
         logger.info(f"Source with id {source_id} deleted successfully")
         return
@@ -289,7 +289,7 @@ async def search_articles(query: str, alpha: float = 0.5, limit: int = 3):
 @router.get("/health")
 async def health_check():
     try:
-        await db.command("ping")
+        await MongoClientSingleton.get_db().command("ping")
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database connectivity issue: {str(e)}")

@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="AuthService", openapi_url="/openapi.json")
 
-app.include_router(auth_router, prefix="/api")
+app.include_router(auth_router)
 
 if __name__ == "__main__":
     logger.info("Starting Auth Service")

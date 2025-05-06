@@ -75,20 +75,26 @@ class ClaimVerifier:
         # REFORMATEAR EVIDENCIAS
         structured: List[EvidenceItem] = []
         for ev in verification.Evidence:
-            m = re.match(r"Article\s+(\d+):", ev)
-            if m:
-                idx = int(m.group(1)) - 1
-                art = articles[idx]
-                structured.append(
-                    EvidenceItem(
-                        Title=art["Title"],
-                        Source=art["Source"],
-                        Date=art["Date"]
+            # SI YA TIENE ESTRUCTURA...
+            if isinstance(ev, EvidenceItem):
+                structured.append(ev)
+            elif isinstance(ev, dict):
+                structured.append(EvidenceItem(**ev))
+            elif isinstance(ev, str):
+                m = re.match(r"Article\s+(\d+):", ev)
+                if m:
+                    idx = int(m.group(1)) - 1
+                    art = articles[idx]
+                    structured.append(
+                        EvidenceItem(
+                            Title=art["Title"],
+                            Source=art["Source"],
+                            Date=art["Date"]
+                        )
                     )
-                )
+                else:
+                    continue
             else:
-                # If the LLM gave an unsupported snippet, you could skip or
-                # fill with placeholders; here we just drop it.
                 continue
 
         verification.Evidence = structured

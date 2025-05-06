@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
-from app.db.mongo import db
+from app.db.mongo import MongoClientSingleton
 from app.db.weaviate_client import create_article_schema, WeaviateAsyncClientSingleton
 from app.api.routes import router
 import requests
@@ -40,6 +40,7 @@ async def create_indexes():
     preventing duplicate entries.
     """
     logger.info("Creating unique indexes for articles and sources")
+    db = await MongoClientSingleton.init_client()
     await db["articles"].create_index("Link", unique=True)
     await db["sources"].create_index("base_url", unique=True)
 
@@ -57,8 +58,9 @@ async def lifespan(app: FastAPI):
     # App running
     yield
 
-    logger.info("Shutdown event: Closing Weaviate async client")
+    logger.info("Shutdown event: Closing Weaviate and MongoDB clients")
     await WeaviateAsyncClientSingleton.close_client()
+    await MongoClientSingleton.close_client()
 
 app = FastAPI(lifespan=lifespan, title="Storage Service", openapi_url="/openapi.json")
 app.include_router(router)

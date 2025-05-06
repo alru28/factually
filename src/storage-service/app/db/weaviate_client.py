@@ -50,36 +50,41 @@ class WeaviateAsyncClientSingleton:
 
 async def create_article_schema():
     client = WeaviateAsyncClientSingleton.get_client()
-    try:
-        await client.collections.create(
-            name="Article",
-            description="An article stored for hybrid search",
-            vectorizer_config=[
-                wvcc.Configure.NamedVectors.text2vec_ollama(
-                    name="ContentVector",
-                    source_properties=["content"],
+    does_exist = await client.collections.exists("Article")  # async schema retrieval
+    if does_exist:
+        logger.info("Article collection schema already exists in Weaviate")
+        return
+    else:
+        try:
+            await client.collections.create(
+                name="Article",
+                description="An article stored for hybrid search",
+                vectorizer_config=[
+                    wvcc.Configure.NamedVectors.text2vec_ollama(
+                        name="ContentVector",
+                        source_properties=["content"],
+                        api_endpoint=OLLAMA_CONNECTION_STRING,
+                        model="nomic-embed-text"
+                    ),
+                ],
+                generative_config=wvcc.Configure.Generative.ollama(
                     api_endpoint=OLLAMA_CONNECTION_STRING,
-                    model="nomic-embed-text"
+                    model="llama3.2:1b"
                 ),
-            ],
-            generative_config=wvcc.Configure.Generative.ollama(
-                api_endpoint=OLLAMA_CONNECTION_STRING,
-                model="llama3.2:1b"
-            ),
-            properties=[
-                wvcc.Property(name='title', data_type=wvcc.DataType.TEXT, description="Title of the article"),
-                wvcc.Property(name='content', data_type=wvcc.DataType.TEXT, description="Combined article content"),
-                wvcc.Property(name='summary', data_type=wvcc.DataType.TEXT, description="Brief summary of the article"),
-                wvcc.Property(name='sentiment', data_type=wvcc.DataType.TEXT, description="Sentiment analysis of the article"),
-                wvcc.Property(name='classification', data_type=wvcc.DataType.TEXT, description="Classification labels for the article"),
-                wvcc.Property(name='date', data_type=wvcc.DataType.TEXT, description="Publication date"),
-                wvcc.Property(name='source', data_type=wvcc.DataType.TEXT, description="URL of the source"),
-            ]
-        )
-        logger.info("Article collection schema created in Weaviate")
-    except Exception as e:
-        logger.error(f"Error creating article schema: {e}")
-        raise e
+                properties=[
+                    wvcc.Property(name='title', data_type=wvcc.DataType.TEXT, description="Title of the article"),
+                    wvcc.Property(name='content', data_type=wvcc.DataType.TEXT, description="Combined article content"),
+                    wvcc.Property(name='summary', data_type=wvcc.DataType.TEXT, description="Brief summary of the article"),
+                    wvcc.Property(name='sentiment', data_type=wvcc.DataType.TEXT, description="Sentiment analysis of the article"),
+                    wvcc.Property(name='classification', data_type=wvcc.DataType.TEXT, description="Classification labels for the article"),
+                    wvcc.Property(name='date', data_type=wvcc.DataType.TEXT, description="Publication date"),
+                    wvcc.Property(name='source', data_type=wvcc.DataType.TEXT, description="URL of the source"),
+                ]
+            )
+            logger.info("Article collection schema created in Weaviate")
+        except Exception as e:
+            logger.error(f"Error creating article schema: {e}")
+            raise e
 
 async def sync_articles_to_weaviate(articles_list: List[Article]):
     client = WeaviateAsyncClientSingleton.get_client()
