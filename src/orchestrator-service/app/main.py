@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="OrchestrationService", openapi_url="/openapi.json")
 
-app.include_router(workflow_router, prefix="/api")
+app.include_router(workflow_router)
 
 if __name__ == "__main__":
     logger.info("Starting Orchestration Service")

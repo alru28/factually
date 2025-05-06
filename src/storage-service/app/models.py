@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import date
 from uuid import uuid4
 from pydantic import BaseModel, Field, HttpUrl, field_validator
@@ -106,7 +106,7 @@ class Source(BaseModel):
 class SearchResult(BaseModel):
     Title: str
     Date: str
-    Content: str
+    Summary: str
     Source: str
 
 def article_helper(article) -> Article:
@@ -144,22 +144,25 @@ def source_helper(source) -> Source:
     del source["_id"]
     return Source.model_validate(source)
 
-def article_to_weaviate_object(article: Article) -> dict:
+def article_to_weaviate_object(article: Union[Article, dict]) -> dict:
+    """
+    Converts an Article instance (or dict representation) into a Weaviate-compatible object.
+    """
+    # If article is a dict, convert to the Pydantic Article model.
+    if isinstance(article, dict):
+        article = Article.parse_obj(article)
+
     content_parts = [article.Title]
-    if article.Summary:
-        content_parts.append(f"Summary: {article.Summary}")
-    if article.Sentiment:
-        content_parts.append(f"Sentiment: {article.Sentiment}")
-    if article.Classification:
-        content_parts.append(f"Classification: {', '.join(article.Classification)}")
     if article.Paragraphs:
         content_parts.extend(article.Paragraphs)
-    
     content = "\n".join(content_parts)
     
     return {
-        "Title": article.Title,
-        "Content": content,
-        "Date": article.Date,
-        "Source": str(article.Source),
+        "title": article.Title,
+        "content": content,
+        "summary": article.Summary or "None",
+        "sentiment": article.Sentiment or "None",
+        "classification": ", ".join(article.Classification) if article.Classification else "None",
+        "date": article.Date,
+        "source": str(article.Source),
     }
