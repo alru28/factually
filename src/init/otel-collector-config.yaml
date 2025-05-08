@@ -1,0 +1,34 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: "0.0.0.0:4318"
+
+exporters:
+  logging:
+    logLevel: debug
+  prometheus:
+    endpoint: "prometheus:9090"
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    labels:
+      resource:
+        "service.name": "{{ .Resource.Attributes.service.name }}"
+  tempo:
+    endpoint: "tempo:4317"
+    insecure: true
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters: [loki]
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [tempo]

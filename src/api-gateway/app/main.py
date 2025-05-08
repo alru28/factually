@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, HTTPException, Response, Depends, Header
 from fastapi.openapi.docs import get_swagger_ui_html
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.utils.logger import DefaultLogger
 import yaml
 import httpx
 import os
+import logging
 
 # GLOBAL
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8000")
@@ -44,8 +46,14 @@ async def proxy_request(request: Request, target_url: str, headers=None):
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=500, detail=f"Gateway error: {str(exc)}")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    DefaultLogger.initialize(service_name="api-gateway", log_level=logging.DEBUG)
+    # App running
+    yield
+
 # GATEWAY APP
-app = FastAPI(title="Factually API", openapi_url = None)
+app = FastAPI(lifespan=lifespan, title="Factually API", openapi_url = None)
 
 # CORS
 app.add_middleware(
@@ -75,6 +83,7 @@ async def exploration_service_proxy(path: str, request: Request, api_verified: s
 @app.api_route("/storage/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
 async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{STORAGE_SERVICE_URL}/{path}".lstrip("/")
+    DefaultLogger.get_logger().info(f"Storage service proxying", extra={"target_url": target_url})
     return await proxy_request(request, target_url)
 
 @app.api_route("/transformation/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
