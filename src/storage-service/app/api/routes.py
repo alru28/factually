@@ -3,7 +3,7 @@ from pymongo.errors import DuplicateKeyError, BulkWriteError
 from fastapi.encoders import jsonable_encoder
 from typing import List
 import uuid
-from app.models import Article, Source, SearchResult, article_helper, source_helper
+from app.models import Article, Source, SearchResult, SearchRequest, article_helper, source_helper
 from app.db.mongo import MongoClientSingleton
 from app.db.weaviate_client import WeaviateAsyncClientSingleton, sync_articles_to_weaviate
 from app.utils.logger import DefaultLogger
@@ -11,7 +11,7 @@ from app.utils.logger import DefaultLogger
 router = APIRouter()
 logger = DefaultLogger("StorageService").get_logger()
 
-@router.post("/articles/", response_model=Article, status_code=201)
+@router.post("/articles", response_model=Article, status_code=201)
 async def create_article(article: Article, background_tasks: BackgroundTasks):
     """
     Creates a new article in the database.
@@ -90,7 +90,7 @@ async def create_articles_bulk(articles: List[Article], background_tasks: Backgr
     background_tasks.add_task(sync_articles_to_weaviate, created_articles)
     return created_articles
 
-@router.get("/articles/", response_model=List[Article])
+@router.get("/articles", response_model=List[Article])
 async def list_articles():
     """
     Retrieves a list of all articles from the database.
@@ -163,7 +163,7 @@ async def delete_article(article_id: str):
         logger.error(f"Article with id {article_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Article not found")
 
-@router.post("/sources/", response_model=Source, status_code=201)
+@router.post("/sources", response_model=Source, status_code=201)
 async def create_source(source: Source):
     """
     Creates a new source in the database.
@@ -189,7 +189,7 @@ async def create_source(source: Source):
     logger.info("Source created successfully")
     return source_helper(created_source)
 
-@router.get("/sources/", response_model=List[Source])
+@router.get("/sources", response_model=List[Source])
 async def list_sources():
     """
     Retrieves a list of all sources from the database.
@@ -261,16 +261,16 @@ async def delete_source(source_id: str):
         logger.error(f"Source with id {source_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Source not found")
 
-@router.get("/search/", response_model=List[SearchResult])
-async def search_articles(query: str, alpha: float = 0.5, limit: int = 3):
+@router.post("/search", response_model=List[SearchResult])
+async def search_articles(request: SearchRequest):
     """
     Search articles using Weaviate's hybrid search.
     """
     articles = WeaviateAsyncClientSingleton.get_client().collections.get('Article')
     response = await articles.query.hybrid(
-        query=query,
-        alpha=alpha,
-        limit=limit
+        query=request.query,
+        alpha=request.alpha,
+        limit=request.limit
     )
 
     results = []

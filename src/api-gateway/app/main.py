@@ -39,7 +39,6 @@ async def proxy_request(request: Request, target_url: str, headers=None):
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
-            
             response = await client.request(method, target_url, headers=headers, content=content)
             return Response(content=response.content, status_code=response.status_code, headers=response.headers)
         except httpx.HTTPError as exc:
@@ -59,7 +58,7 @@ app.add_middleware(
 
 # PROXY ROUTES
 @app.api_route("/extraction/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
-async def collection_service_proxy(path: str, request: Request, token_verified: str = Depends(verify_api_key)):
+async def collection_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{EXTRACTION_SERVICE_URL}/{path}".lstrip("/")
     return await proxy_request(request, target_url)
 
@@ -69,22 +68,22 @@ async def auth_service_proxy(path: str, request: Request):
     return await proxy_request(request, target_url)
 
 @app.api_route("/orchestrator/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
-async def exploration_service_proxy(path: str, request: Request, token_verified: str = Depends(verify_api_key)):
+async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{ORCHESTRATOR_SERVICE_URL}/{path}".lstrip("/")
     return await proxy_request(request, target_url)
 
 @app.api_route("/storage/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
-async def exploration_service_proxy(path: str, request: Request, token_verified: str = Depends(verify_api_key)):
+async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{STORAGE_SERVICE_URL}/{path}".lstrip("/")
     return await proxy_request(request, target_url)
 
 @app.api_route("/transformation/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
-async def exploration_service_proxy(path: str, request: Request, token_verified: str = Depends(verify_api_key)):
+async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{TRANSFORMATION_SERVICE_URL}/{path}".lstrip("/")
     return await proxy_request(request, target_url)
 
 @app.api_route("/verification/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
-async def exploration_service_proxy(path: str, request: Request, token_verified: str = Depends(verify_api_key)):
+async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{VERIFICATION_SERVICE_URL}/{path}".lstrip("/")
     return await proxy_request(request, target_url)
 
@@ -98,7 +97,7 @@ async def get_openapi_yaml():
 
 @app.get("/docs", include_in_schema=False)
 async def custom_docs():
-    return get_swagger_ui_html(openapi_url="/api-doc.yaml", title="Custom API Docs")
+    return get_swagger_ui_html(openapi_url="/api-doc.yaml", title="Factually API Docs", swagger_ui_parameters={"persistAuthorization": True})
 
 if __name__ == "__main__":
     import uvicorn

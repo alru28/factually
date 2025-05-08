@@ -17,3 +17,6 @@ class VerificationResult(BaseModel):
     Claim: str
     Verdict: str
     Evidence: List[EvidenceItem]
+
+class ClaimRequest(BaseModel):
+    Claim: str

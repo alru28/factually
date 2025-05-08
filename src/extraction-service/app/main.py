@@ -150,10 +150,6 @@ async def scrape_all(scrape_request: ScrapeRequest):
     logger.info("Scrape and insertion completed for all sources")
     return {"message": "Scraped and inserted articles for all sources"}
 
-def run_consumer():
-    from app.rabbitmq import consumer as rabbit_consumer
-    rabbit_consumer.start_consumer()
-
 if __name__ == "__main__":
     logger.info("Starting Extraction Service")
     uvicorn.run("main:app", host="0.0.0.0", port=8000)

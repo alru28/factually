@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from app.utils.logger import DefaultLogger
 from app.db.database import get_db
-from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
+from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm, VerifyEmailRequest
 from app.db.schema import User, APIKey
 from sqlalchemy.orm import Session
 from app.db.crud import create_user, get_user_by_email, create_api_key, verify_email, create_password_reset_token, reset_password
@@ -107,12 +107,13 @@ async def password_reset_confirm(reset: PasswordResetConfirm, db: Session = Depe
     return {"message": "Password successfully reset"}
 
 # Email Verification Endpoint
-@router.get("/verify-email")
-async def verify_email(token: str, db: Session = Depends(get_db)):
+@router.post("/verify-email")
+async def verify_email_request(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     logger.info(f"Received Email Verification request")
-    user = verify_email(db, token)
+    user = verify_email(db, request.token)
     if not user:
         logger.error(f"Email Verification request failed: Invalid token")
         raise HTTPException(status_code=400, detail="Invalid token")
+    print(f"USER: {user}")
     logger.info(f"Email Verification successful for user {user.email}")
     return {"message": "Email successfully verified"}
