@@ -13,6 +13,7 @@ services:
       - transformation-service
       - orchestrator-service
       - extraction-service
+      - lgtm
     environment:
       - SERVICE_NAME=api-gateway
       - LOG_LEVEL=DEBUG
@@ -41,6 +42,8 @@ services:
     depends_on:
       storage-service:
         condition: service_started
+      lgtm:
+        condition: service_started
   auth-service:
     build: ./auth-service
     environment:
@@ -57,6 +60,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      lgtm:
+        condition: service_started
   transformation-service:
     build: ./transformation-service
     environment:
@@ -73,6 +78,8 @@ services:
       rabbitmq:
         condition: service_healthy
       storage-service:
+        condition: service_started
+      lgtm:
         condition: service_started
     deploy:
       resources:
@@ -102,6 +109,8 @@ services:
         condition: service_started
       transformation-service:
         condition: service_started
+      lgtm:
+        condition: service_started
       
   extraction-service:
     build: ./extraction-service
@@ -121,6 +130,8 @@ services:
         condition: service_healthy
       storage-service:
         condition: service_started
+      lgtm:
+        condition: service_started
 
   storage-service:
     build: ./storage-service
@@ -139,6 +150,7 @@ services:
       - "8001:8000"
     depends_on:
       - mongodb
+      - lgtm
 
   # DB and Utilities
   mongodb: 
