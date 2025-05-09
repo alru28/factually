@@ -6,7 +6,7 @@ from app.utils.logger import DefaultLogger
 from app.models import SearchResult
 
 
-logger = DefaultLogger("VerificationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 

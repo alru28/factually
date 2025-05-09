@@ -9,7 +9,7 @@ from app.utils.services import search_articles
 from app.models import VerificationResult, EvidenceItem
 import re
 
-logger = DefaultLogger("VerificationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'qwen3:4b')
 OLLAMA_CONNECTION_STRING = os.getenv('OLLAMA_CONNECTION_STRING', 'http://ollama:11434')

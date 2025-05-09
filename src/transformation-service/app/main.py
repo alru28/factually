@@ -4,15 +4,17 @@ from app.utils.logger import DefaultLogger
 from app.rabbitmq.client import get_rabbitmq_client
 from app.rabbitmq.operations import handle_message
 from app.api.routes import router as nlp_router
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 import os
 import asyncio
 import uvicorn
 
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing TransformationService")
     try:
         client = await get_rabbitmq_client()
         logger.info("RabbitMQ Client connected | Queues and Exchange declared")
@@ -32,6 +34,8 @@ async def lifespan(app: FastAPI):
         logger.error(f"Error during RabbitMQ shutdown: {e}")
 
 app = FastAPI(lifespan=lifespan, title="TransformationService", openapi_url="/openapi.json")
+
+FastAPIInstrumentor.instrument_app(app)
 
 app.include_router(nlp_router)
 

@@ -6,7 +6,7 @@ from app.utils.date_formatter import secure_date_range
 from app.utils.services import get_sources, post_articles_bulk
 from app.core.scraper import scrape_articles_base, scrape_articles_content
 
-logger = DefaultLogger("ExtractionService").get_logger()
+logger = DefaultLogger().get_logger()
 
 async def publish_message(message: dict, routing_key: str):
     try:

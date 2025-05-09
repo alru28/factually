@@ -6,7 +6,7 @@ from app.nlp.processor import get_nlp_processor
 from app.utils.services import store_processed_article
 
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 nlp_processor = get_nlp_processor()
 

@@ -2,11 +2,12 @@ from fastapi import FastAPI, Request, HTTPException, Response, Depends, Header
 from fastapi.openapi.docs import get_swagger_ui_html
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.trace import Span, get_tracer_provider
 from app.utils.logger import DefaultLogger
 import yaml
 import httpx
 import os
-import logging
 
 # GLOBAL
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8000")
@@ -16,7 +17,17 @@ EXTRACTION_SERVICE_URL = os.getenv("EXTRACTION_SERVICE_URL", "http://extraction-
 ORCHESTRATOR_SERVICE_URL = os.getenv("ORCHESTRATOR_SERVICE_URL", "http://orchestrator-service:8000")
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 
+logger = DefaultLogger.get_logger()
+
 # GATEWAY HELPER FUNCTIONS
+# Extract API Key from headers and add it to the span
+def add_api_key_to_span(span: Span, scope) -> None:
+    headers = dict(scope["headers"])
+    api_key = headers.get(b"x-api-key", b"").decode("utf-8")
+    if api_key:
+        span.set_attribute("enduser.id", api_key)
+
+# Dependency to verify API Key
 async def verify_api_key(request: Request):
     api_key = request.headers.get("X-API-Key")
     if not api_key:
@@ -48,12 +59,14 @@ async def proxy_request(request: Request, target_url: str, headers=None):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    DefaultLogger.initialize(service_name="api-gateway", log_level=logging.DEBUG)
     # App running
+    logger.info("Initializing API Gateway")
     yield
 
 # GATEWAY APP
-app = FastAPI(lifespan=lifespan, title="Factually API", openapi_url = None)
+app = FastAPI(lifespan=lifespan, title="FactuallyAPIGateway", openapi_url = None)
+
+FastAPIInstrumentor.instrument_app(app, server_request_hook=add_api_key_to_span)
 
 # CORS
 app.add_middleware(

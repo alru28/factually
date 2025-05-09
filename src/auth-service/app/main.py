@@ -11,6 +11,7 @@ logger = DefaultLogger.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing AuthService")
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables declared successfully.")

@@ -3,7 +3,7 @@ import httpx
 from fastapi.encoders import jsonable_encoder
 from app.utils.logger import DefaultLogger
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 

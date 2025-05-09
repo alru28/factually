@@ -5,7 +5,7 @@ from app.models import VerificationResult, ClaimRequest
 from app.core.verifier import ClaimVerifier
 
 router = APIRouter()
-logger = DefaultLogger("VerificationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 
 @router.post("/claim", response_model=VerificationResult)

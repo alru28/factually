@@ -80,10 +80,6 @@ class OpenTelemetryLogger:
             set_tracer_provider(trace_provider)
             
         cls._initialized = True
-        logging.getLogger(__name__).info(
-            "Logger initialized for service: %s", cls._service_name,
-            extra={"service_name": cls._service_name}
-        )
 
     @classmethod
     def get_logger(cls, name: Optional[str] = None) -> logging.Logger:

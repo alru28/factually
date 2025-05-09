@@ -14,6 +14,9 @@ services:
       - orchestrator-service
       - extraction-service
     environment:
+      - SERVICE_NAME=api-gateway
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - VERIFICATION_SERVICE_URL=http://verification-service:8000
       - AUTH_SERVICE_URL=http://auth-service:8000
       - STORAGE_SERVICE_URL=http://storage-service:8000
@@ -25,6 +28,9 @@ services:
   verification-service:
     build: ./verification-service
     environment:
+      - SERVICE_NAME=verification-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - OLLAMA_MODEL=qwen3:4b
       - OLLAMA_CONNECTION_STRING=http://ollama:11434
       - STORAGE_SERVICE_URL=http://storage-service:8000
@@ -54,6 +60,9 @@ services:
   transformation-service:
     build: ./transformation-service
     environment:
+      - SERVICE_NAME=transformation-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - STORAGE_SERVICE_URL=http://storage-service:8000
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
@@ -76,6 +85,9 @@ services:
   orchestrator-service:
     build: ./orchestrator-service
     environment:
+      - SERVICE_NAME=orchestrator-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
       - "8002:8000"
@@ -94,6 +106,9 @@ services:
   extraction-service:
     build: ./extraction-service
     environment:
+      - SERVICE_NAME=extraction-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - STORAGE_SERVICE_URL=http://storage-service:8000
       - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
@@ -110,6 +125,9 @@ services:
   storage-service:
     build: ./storage-service
     environment:
+      - SERVICE_NAME=storage-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - MONGO_CONNECTION_STRING=mongodb://mongo_user:mongo_pass@mongodb:27017/factually_db
       - WEAVIATE_HOST=weaviate
       - WEAVIATE_PORT=8080

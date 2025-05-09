@@ -6,13 +6,14 @@ from app.api.routes import router
 import requests
 import uvicorn
 import os
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.utils.logger import DefaultLogger
 
 OLLAMA_CONNECTION_STRING = os.getenv(
     "OLLAMA_CONNECTION_STRING", "http://ollama:11434"
 )
 
-logger = DefaultLogger("StorageService").get_logger()
+logger = DefaultLogger().get_logger()
 
 def check_and_pull_model():
     try:
@@ -46,6 +47,7 @@ async def create_indexes():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing StorageService")
     # Models and DBs init
     logger.info("Startup event: Initializing MongoDB indexes")
     await create_indexes()
@@ -62,7 +64,10 @@ async def lifespan(app: FastAPI):
     await WeaviateAsyncClientSingleton.close_client()
     await MongoClientSingleton.close_client()
 
-app = FastAPI(lifespan=lifespan, title="Storage Service", openapi_url="/openapi.json")
+app = FastAPI(lifespan=lifespan, title="StorageService", openapi_url="/openapi.json")
+
+FastAPIInstrumentor.instrument_app(app)
+
 app.include_router(router)
 
 if __name__ == "__main__":

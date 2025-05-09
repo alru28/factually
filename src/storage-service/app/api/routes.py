@@ -9,7 +9,7 @@ from app.db.weaviate_client import WeaviateAsyncClientSingleton, sync_articles_t
 from app.utils.logger import DefaultLogger
 
 router = APIRouter()
-logger = DefaultLogger("StorageService").get_logger()
+logger = DefaultLogger().get_logger()
 
 @router.post("/articles", response_model=Article, status_code=201)
 async def create_article(article: Article, background_tasks: BackgroundTasks):

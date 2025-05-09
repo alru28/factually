@@ -4,16 +4,18 @@ from app.utils.logger import DefaultLogger
 from app.rabbitmq.client import get_rabbitmq_client
 from app.rabbitmq.operations import handle_message
 from app.api.routes import router as workflow_router
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 import os
 import asyncio
 import uvicorn
 
 
 
-logger = DefaultLogger("OrchestrationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing OrchestratorService")
     try:
         client = await get_rabbitmq_client()
         logger.info("RabbitMQ Client connected | Queues and Exchange declared")
@@ -32,7 +34,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during RabbitMQ shutdown: {e}")
 
-app = FastAPI(lifespan=lifespan, title="OrchestrationService", openapi_url="/openapi.json")
+app = FastAPI(lifespan=lifespan, title="OrchestratorService", openapi_url="/openapi.json")
+
+FastAPIInstrumentor.instrument_app(app)
 
 app.include_router(workflow_router)
 

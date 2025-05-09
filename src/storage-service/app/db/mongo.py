@@ -1,8 +1,11 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.utils.logger import DefaultLogger
+from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
 
-logger = DefaultLogger("StorageService").get_logger()
+PymongoInstrumentor().instrument()
+
+logger = DefaultLogger().get_logger()
 
 MONGO_CONNECTION_STRING = os.getenv(
     "MONGO_CONNECTION_STRING", "mongodb://localhost:27017/factually_db"

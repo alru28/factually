@@ -3,12 +3,13 @@ from contextlib import asynccontextmanager
 from app.api.routes import router
 import uvicorn
 from app.utils.logger import DefaultLogger
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.core.verifier import ClaimVerifier
 import os
 import requests
 
 OLLAMA_CONNECTION_STRING = os.getenv('OLLAMA_CONNECTION_STRING', 'http://ollama:11434')
-logger = DefaultLogger("VerificationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 
 def check_and_pull_model():
@@ -27,6 +28,7 @@ def check_and_pull_model():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing VerificationService")
     # Verifier init
     logger.info("Startup event: Initializing Verifier")
     await ClaimVerifier.init_verifier()
@@ -36,7 +38,10 @@ async def lifespan(app: FastAPI):
     # App running
     yield
 
-app = FastAPI(lifespan=lifespan, title="Verification Service", openapi_url="/openapi.json")
+app = FastAPI(lifespan=lifespan, title="VerificationService", openapi_url="/openapi.json")
+
+FastAPIInstrumentor.instrument_app(app)
+
 app.include_router(router)
 
 if __name__ == "__main__":
