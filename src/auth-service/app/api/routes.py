@@ -9,7 +9,7 @@ from app.utils.security import verify_password
 from app.utils.mail_helper import send_email
 import datetime
 
-logger = DefaultLogger("AuthService").get_logger()
+logger = DefaultLogger().get_logger()
 
 router = APIRouter()
 

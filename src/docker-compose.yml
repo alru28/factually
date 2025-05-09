@@ -38,6 +38,9 @@ services:
   auth-service:
     build: ./auth-service
     environment:
+      - SERVICE_NAME=auth-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
       - MAILHOG_HOST=mailhog
       - MAILHOG_PORT=1025
@@ -223,56 +226,14 @@ services:
       - factually-network
 
   # Logging and Monitoring
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    command: ["--config=/etc/otel-collector-config.yaml"]
+  lgtm:
+    image: grafana/otel-lgtm
     volumes:
       - ./init/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      # - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    networks:
-      - factually-network
-  
-  loki:
-    image: grafana/loki:latest
-    ports:
-      - "3100:3100"
-    command: ["-config.file=/etc/loki/local-config.yaml"]
-    networks:
-      - factually-network
-  
-  tempo:
-    image: grafana/tempo:latest
-    command: ["-config.file=/etc/tempo-config.yaml"]
-    volumes:
-      - ./init/tempo-config.yaml:/etc/tempo-config.yaml
-    ports:
-      - "3200:3200"   # HTTP
       - "4317:4317"   # OTLP gRPC
-    networks:
-      - factually-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./init/prometheus.yaml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - factually-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    depends_on:
-      - loki
-      - tempo
-      - prometheus
+      - "4318:4318"   # OTLP HTTP
+      - "3000:3000" # Grafana UI
     networks:
       - factually-network
 
@@ -281,7 +242,6 @@ volumes:
   ollama_data:
   weaviate_data:
   postgres_data:
-  grafana_data:
 
 networks:
   factually-network:

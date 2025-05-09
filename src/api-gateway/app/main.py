@@ -83,7 +83,6 @@ async def exploration_service_proxy(path: str, request: Request, api_verified: s
 @app.api_route("/storage/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
 async def exploration_service_proxy(path: str, request: Request, api_verified: str = Depends(verify_api_key)):
     target_url = f"{STORAGE_SERVICE_URL}/{path}".lstrip("/")
-    DefaultLogger.get_logger().info(f"Storage service proxying", extra={"target_url": target_url})
     return await proxy_request(request, target_url)
 
 @app.api_route("/transformation/{path:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
