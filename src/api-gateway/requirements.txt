@@ -1,14 +1,10 @@
-beautifulsoup4==4.13.3
-fastapi==0.115.8
+fastapi==0.115.12
 httpx==0.28.1
-pydantic==2.10.6
-Requests==2.32.3
-selenium==4.28.1
+PyYAML==6.0.2
 uvicorn==0.34.0
-aio-pika==9.5.5
 opentelemetry-api==1.28.0
 opentelemetry-sdk==1.28.0
 opentelemetry-exporter-otlp-proto-http==1.28.0
 opentelemetry-instrumentation-fastapi==0.49b0
-opentelemetry-instrumentation-aio-pika==0.49b0
+opentelemetry-instrumentation-httpx==0.49b0
 opentelemetry-instrumentation-logging==0.49b0

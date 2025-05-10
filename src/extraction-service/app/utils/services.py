@@ -3,14 +3,14 @@ import httpx
 from fastapi.encoders import jsonable_encoder
 from app.utils.logger import DefaultLogger
 
-logger = DefaultLogger("ExtractionService").get_logger()
+logger = DefaultLogger().get_logger()
 
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://storage-service:8000")
 
 async def get_sources():
     logger.debug("Requesting sources from Storage Service")
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{STORAGE_SERVICE_URL}/sources/")
+        response = await client.get(f"{STORAGE_SERVICE_URL}/sources")
         if response.status_code != 200:
             logger.error("Failed to retrieve sources from Storage Service")
             raise Exception("Failed to retrieve sources")

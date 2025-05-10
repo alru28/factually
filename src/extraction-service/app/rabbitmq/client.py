@@ -3,6 +3,7 @@ import json
 from fastapi.encoders import jsonable_encoder
 import logging
 from aio_pika import connect_robust, Message, ExchangeType
+from opentelemetry.instrumentation.aio_pika import AioPikaInstrumentor
 from app.utils.logger import DefaultLogger
 import os
 
@@ -10,7 +11,9 @@ RABBITMQ_CONNECTION_STRING = os.getenv(
     "RABBITMQ_CONNECTION_STRING", "amqp://guest:guest@rabbitmq:5672/%2F"
 )
 
-logger = DefaultLogger("ExtractionService").get_logger()
+AioPikaInstrumentor().instrument()
+
+logger = DefaultLogger().get_logger()
 
 class RabbitMQClient:
     def __init__(self, rabbitmq_url: str, exchange_name: str, queues: dict = None):

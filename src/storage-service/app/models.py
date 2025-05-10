@@ -103,6 +103,15 @@ class Source(BaseModel):
         None, description="CSS selector for navigation button, if any"
     )
 
+class SearchRequest(BaseModel):
+    query: str = Field(..., description="Search query string")
+    alpha: Optional[float] = Field(
+        0.5, description="Alpha value for Weaviate search (default: 0.5)"
+    )
+    limit: Optional[int] = Field(
+        3, description="Maximum number of results to return (default: 3)"
+    )
+
 class SearchResult(BaseModel):
     Title: str
     Date: str

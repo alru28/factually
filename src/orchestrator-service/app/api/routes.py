@@ -5,7 +5,7 @@ from app.models import WorkflowRequest, WorkflowResponse, MessagePayload
 from app.rabbitmq.operations import publish_message
 from app.utils.logger import DefaultLogger
 
-logger = DefaultLogger("OrchestrationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 router = APIRouter()
 

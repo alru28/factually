@@ -8,13 +8,16 @@ from app.utils.services import get_sources, post_articles_bulk
 from fastapi import FastAPI, HTTPException
 from app.rabbitmq.client import get_rabbitmq_client
 from app.rabbitmq.operations import handle_message
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 import asyncio
 import uvicorn
 
-logger = DefaultLogger("ExtractionService").get_logger()
+
+logger = DefaultLogger().get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing ExtractionService")
     try:
         client = await get_rabbitmq_client()
         logger.info("RabbitMQ Client connected | Queues and Exchange declared")
@@ -33,7 +36,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during RabbitMQ shutdown: {e}")
 
-app = FastAPI(lifespan=lifespan, title="Extraction Service")
+app = FastAPI(lifespan=lifespan, title="ExtractionService")
+
+FastAPIInstrumentor.instrument_app(app)
 
 @app.post("/scrape/source", response_model=dict)
 async def scrape_source(scrape_request: SourceScrapeRequest):
@@ -149,10 +154,6 @@ async def scrape_all(scrape_request: ScrapeRequest):
 
     logger.info("Scrape and insertion completed for all sources")
     return {"message": "Scraped and inserted articles for all sources"}
-
-def run_consumer():
-    from app.rabbitmq import consumer as rabbit_consumer
-    rabbit_consumer.start_consumer()
 
 if __name__ == "__main__":
     logger.info("Starting Extraction Service")

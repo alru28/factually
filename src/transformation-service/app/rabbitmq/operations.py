@@ -6,7 +6,7 @@ from app.nlp.processor import get_nlp_processor
 from app.utils.services import store_processed_article
 
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 nlp_processor = get_nlp_processor()
 
@@ -50,10 +50,10 @@ async def handle_message(message):
                 "correlation_id": correlation_id,
                 "status": "transformation_complete",
                 "article_ids": article_ids,
-                "results": results,
+                "article_count": len(results),
             }
 
-            await publish_message(new_payload, routing_key="tasks_completion")
+            await publish_message(new_payload, routing_key="completion")
             logger.info(f"Published completion task for correlation_id {correlation_id}")
     else:
         logger.warning("Received message with unsupported status. No action taken.")

@@ -5,7 +5,7 @@ from app.utils.logger import DefaultLogger
 import torch
 
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 class NLPProcessor:
     """

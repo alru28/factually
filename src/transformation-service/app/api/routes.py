@@ -10,7 +10,7 @@ from app.utils.logger import DefaultLogger
 from app.nlp.processor import get_nlp_processor
 
 
-logger = DefaultLogger("TransformationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 nlp_processor = get_nlp_processor()
 

@@ -3,7 +3,7 @@ import asyncio
 from app.utils.logger import DefaultLogger
 from app.main import get_rabbitmq_client
 
-logger = DefaultLogger("OrchestrationService").get_logger()
+logger = DefaultLogger().get_logger()
 
 async def publish_message(message: dict, routing_key: str):
     try:

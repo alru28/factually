@@ -1,9 +1,37 @@
 name: factually
 
 services:
+  # API Gateway and Services
+  gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - verification-service
+      - storage-service
+      - transformation-service
+      - orchestrator-service
+      - extraction-service
+      - lgtm
+    environment:
+      - SERVICE_NAME=api-gateway
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
+      - VERIFICATION_SERVICE_URL=http://verification-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - STORAGE_SERVICE_URL=http://storage-service:8000
+      - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
+      - EXTRACTION_SERVICE_URL=http://extraction-service:8000
+      - TRANSFORMATION_SERVICE_URL=http://transformation-service:8000
+    networks:
+      - factually-network
   verification-service:
     build: ./verification-service
     environment:
+      - SERVICE_NAME=verification-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - OLLAMA_MODEL=qwen3:4b
       - OLLAMA_CONNECTION_STRING=http://ollama:11434
       - STORAGE_SERVICE_URL=http://storage-service:8000
@@ -14,9 +42,14 @@ services:
     depends_on:
       storage-service:
         condition: service_started
+      lgtm:
+        condition: service_started
   auth-service:
     build: ./auth-service
     environment:
+      - SERVICE_NAME=auth-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
       - MAILHOG_HOST=mailhog
       - MAILHOG_PORT=1025
@@ -27,9 +60,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      lgtm:
+        condition: service_started
   transformation-service:
     build: ./transformation-service
     environment:
+      - SERVICE_NAME=transformation-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - STORAGE_SERVICE_URL=http://storage-service:8000
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
@@ -40,6 +78,8 @@ services:
       rabbitmq:
         condition: service_healthy
       storage-service:
+        condition: service_started
+      lgtm:
         condition: service_started
     deploy:
       resources:
@@ -52,6 +92,9 @@ services:
   orchestrator-service:
     build: ./orchestrator-service
     environment:
+      - SERVICE_NAME=orchestrator-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
       - "8002:8000"
@@ -66,15 +109,20 @@ services:
         condition: service_started
       transformation-service:
         condition: service_started
+      lgtm:
+        condition: service_started
       
   extraction-service:
     build: ./extraction-service
     environment:
+      - SERVICE_NAME=extraction-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - STORAGE_SERVICE_URL=http://storage-service:8000
       - ORCHESTRATOR_SERVICE_URL=http://orchestrator-service:8000
       - RABBITMQ_CONNECTION_STRING=amqp://guest:guest@rabbitmq:5672/%2F
     ports:
-      - "8000:8000"
+      - "8006:8000"
     networks:
       - factually-network
     depends_on:
@@ -82,10 +130,15 @@ services:
         condition: service_healthy
       storage-service:
         condition: service_started
+      lgtm:
+        condition: service_started
 
   storage-service:
     build: ./storage-service
     environment:
+      - SERVICE_NAME=storage-service
+      - LOG_LEVEL=DEBUG
+      - OTLP_ENDPOINT=http://lgtm:4318
       - MONGO_CONNECTION_STRING=mongodb://mongo_user:mongo_pass@mongodb:27017/factually_db
       - WEAVIATE_HOST=weaviate
       - WEAVIATE_PORT=8080
@@ -97,7 +150,9 @@ services:
       - "8001:8000"
     depends_on:
       - mongodb
+      - lgtm
 
+  # DB and Utilities
   mongodb: 
     image: mongo:5.0-focal
     environment:
@@ -197,6 +252,16 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+    networks:
+      - factually-network
+
+  # Logging and Monitoring
+  lgtm:
+    image: grafana/otel-lgtm
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "3000:3000" # Grafana UI
     networks:
       - factually-network
 

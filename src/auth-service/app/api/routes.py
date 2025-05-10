@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from app.utils.logger import DefaultLogger
 from app.db.database import get_db
-from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
+from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm, VerifyEmailRequest
 from app.db.schema import User, APIKey
 from sqlalchemy.orm import Session
 from app.db.crud import create_user, get_user_by_email, create_api_key, verify_email, create_password_reset_token, reset_password
@@ -9,7 +9,7 @@ from app.utils.security import verify_password
 from app.utils.mail_helper import send_email
 import datetime
 
-logger = DefaultLogger("AuthService").get_logger()
+logger = DefaultLogger().get_logger()
 
 router = APIRouter()
 
@@ -58,9 +58,9 @@ async def request_api_key(credentials: LoginRequest, db: Session = Depends(get_d
 
 # API Key Validation Endpoint
 @router.get("/validate")
-async def validate_api_key(key: str, db: Session = Depends(get_db)):
+async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: Session = Depends(get_db)):
     logger.info("Received API key validation request")
-    api_key = db.query(APIKey).filter(APIKey.key == key).first()
+    api_key = db.query(APIKey).filter(APIKey.key == x_api_key).first()
     if not api_key:
         logger.error("API Key validation failed: Invalid API key")
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -107,12 +107,13 @@ async def password_reset_confirm(reset: PasswordResetConfirm, db: Session = Depe
     return {"message": "Password successfully reset"}
 
 # Email Verification Endpoint
-@router.get("/verify-email")
-async def verify_email(token: str, db: Session = Depends(get_db)):
+@router.post("/verify-email")
+async def verify_email_request(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     logger.info(f"Received Email Verification request")
-    user = verify_email(db, token)
+    user = verify_email(db, request.token)
     if not user:
         logger.error(f"Email Verification request failed: Invalid token")
         raise HTTPException(status_code=400, detail="Invalid token")
+    print(f"USER: {user}")
     logger.info(f"Email Verification successful for user {user.email}")
     return {"message": "Email successfully verified"}

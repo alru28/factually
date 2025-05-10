@@ -6,7 +6,7 @@ from typing import List
 from app.utils.logger import DefaultLogger
 from app.models import Article, article_to_weaviate_object
 
-logger = DefaultLogger("StorageService").get_logger()
+logger = DefaultLogger().get_logger()
 
 WEAVIATE_HOST = os.getenv("WEAVIATE_HOST", "weaviate")
 WEAVIATE_PORT = os.getenv("WEAVIATE_PORT", "8080")
