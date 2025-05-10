@@ -1,4 +1,3 @@
-# utils/logger.py
 import logging
 import sys
 import os
@@ -13,10 +12,25 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.semconv.resource import ResourceAttributes
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT", "http://lgtm:4318")
 SERVICE_NAME = os.getenv("SERVICE_NAME", "undefined-service")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+class SafeFormatter(logging.Formatter):
+    """
+    Custom formatter to ensure that all log records have the required attributes
+    """
+    def format(self, record):
+        # inject defaults if the record doesn’t have them
+        if not hasattr(record, "otelTraceID"):
+            record.otelTraceID = "-"
+        if not hasattr(record, "otelSpanID"):
+            record.otelSpanID = "-"
+        if not hasattr(record, "service_name"):
+            record.service_name = SERVICE_NAME
+        return super().format(record)
 
 class OpenTelemetryLogger:
     """
@@ -38,6 +52,8 @@ class OpenTelemetryLogger:
     def initialize(cls, service_name: Optional[str] = None, log_level: Optional[int] = None):
         if cls._initialized:
             return
+        
+        LoggingInstrumentor().instrument(set_logging_format=False)
 
         # Use parameters or fallback to environment variables
         cls._service_name = service_name or SERVICE_NAME
@@ -62,7 +78,7 @@ class OpenTelemetryLogger:
         )
 
          # Configure logging format with OpenTelemetry context
-        formatter = logging.Formatter(
+        formatter = SafeFormatter(
             "[%(asctime)s] - [%(service_name)s] - [%(levelname)s] - [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
         )
         handler.setFormatter(formatter)      

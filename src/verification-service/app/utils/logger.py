@@ -18,6 +18,20 @@ OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT", "http://lgtm:4318")
 SERVICE_NAME = os.getenv("SERVICE_NAME", "undefined-service")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+class SafeFormatter(logging.Formatter):
+    """
+    Custom formatter to ensure that all log records have the required attributes
+    """
+    def format(self, record):
+        # inject defaults if the record doesn’t have them
+        if not hasattr(record, "otelTraceID"):
+            record.otelTraceID = "-"
+        if not hasattr(record, "otelSpanID"):
+            record.otelSpanID = "-"
+        if not hasattr(record, "service_name"):
+            record.service_name = SERVICE_NAME
+        return super().format(record)
+
 class OpenTelemetryLogger:
     """
     Self-initializing OpenTelemetry logger with fail-safe defaults
@@ -64,8 +78,8 @@ class OpenTelemetryLogger:
         )
 
          # Configure logging format with OpenTelemetry context
-        formatter = logging.Formatter(
-            "[%(asctime)s] - [%(service_name)s] - [%(levelname)s] - [trace_id=%(trace_id)s span_id=%(span_id)s] - %(message)s"
+        formatter = SafeFormatter(
+            "[%(asctime)s] - [%(service_name)s] - [%(levelname)s] - [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
         )
         handler.setFormatter(formatter)      
         
