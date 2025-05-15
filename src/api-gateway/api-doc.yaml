@@ -44,17 +44,47 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '400':
           description: Email already registered
-
-  /auth/apikeys:
+  
+  /auth/login:
     post:
       tags: [Authentication]
-      summary: Generate API key
+      summary: User login
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login, returns JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials or email not verified
+
+  /auth/apikeys:
+    get:
+      tags: [Authentication]
+      summary: List API keys
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user's API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIKeyResponse'
+    post:
+      tags: [Authentication]
+      summary: Generate API key
+      security:
+        - BearerAuth: []
       responses:
         '201':
           description: API key generated
@@ -64,6 +94,52 @@ paths:
                 $ref: '#/components/schemas/APIKeyResponse'
         '401':
           description: Invalid credentials
+        '403':
+          description: Email not verified
+
+  /auth/apikeys/{api_key_id}/renew:
+    post:
+      tags: [Authentication]
+      summary: Renew API key expiration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: api_key_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: API key renewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyResponse'
+        '404':
+          description: API key not found
+
+  /auth/apikeys/{api_key_id}:
+    delete:
+      tags: [Authentication]
+      summary: Revoke API key
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: api_key_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: API key revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: API key not found
 
   /auth/validate:
     get:
@@ -541,6 +617,10 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     # Authentication Service Schemas
     LoginRequest:
@@ -552,6 +632,15 @@ components:
         password:
           type: string
       required: [email, password]
+    
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
 
     PasswordResetRequest:
       type: object
@@ -599,20 +688,31 @@ components:
     APIKeyResponse:
       type: object
       properties:
+        id:
+          type: integer
         key:
           type: string
         created_at:
           type: string
           format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
 
     ValidateResponse:
       type: object
       properties:
         message:
           type: string
-        user_id:
-          type: integer
-      required: [message, user_id]
+      required: [message]
     
     VerifyEmailRequest:
       type: object

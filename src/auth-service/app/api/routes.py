@@ -49,20 +49,6 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     response = TokenResponse(access_token=token)
     return response
 
-# API Key Request Endpoint
-@router.post("/apikeys", response_model=APIKeyResponse)
-async def request_api_key(credentials: LoginRequest, db: Session = Depends(get_db)):
-    logger.info(f"Received API Key request for user {credentials.email}")
-    user = get_user_by_email(db, credentials.email)
-    if not user or not verify_password(credentials.password, user.hashed_password):
-        logger.error(f"API Key request failed for user {credentials.email}: Invalid credentials")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not user.is_verified:
-        raise HTTPException(status_code=403, detail="Email not verified")
-    api_key = create_api_key(db, user.id)
-    logger.info(f"API Key provisioned succesfully for user {credentials.email}")
-    return api_key
-
 # API Key Validation Endpoint
 @router.get("/validate")
 async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: Session = Depends(get_db)):
@@ -82,7 +68,20 @@ async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: 
         raise HTTPException(status_code=401, detail="API key expired")
     
     logger.info(f"API key validated successfully for user ID {api_key.user_id}")
-    return {"message": "API key is valid", "user_id": api_key.user_id}
+    return {"message": "API key is valid"}
+
+# API Key Request Endpoint
+@router.post("/apikeys", response_model=APIKeyResponse)
+async def request_api_key(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    logger.info(f"Received API Key request for user {current_user.email}")
+    if not current_user.is_verified:
+        raise HTTPException(status_code=403, detail="Email not verified")
+    api_key = create_api_key(db, current_user.id)
+    logger.info(f"API Key provisioned succesfully for user {current_user.email}")
+    return api_key
 
 # List API keys
 @router.get("/apikeys", response_model=APIKeyListResponse)
