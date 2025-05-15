@@ -1,0 +1,20 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import Card from "../components/Card.astro";
+import Button from "../components/Button.astro";
+
+const cards = [
+  { title: "Explore API", content: "Explore the API capabilities." },
+  { title: "Documentation", content: "Learn more in our docs." },
+];
+---
+<MainLayout>
+  <section class="grid md:grid-cols-2 gap-4">
+    {cards.map((card) => (
+      <Card title={card.title}>
+        {card.content}
+        <Button href="#">Go</Button>
+      </Card>
+    ))}
+  </section>
+</MainLayout>
