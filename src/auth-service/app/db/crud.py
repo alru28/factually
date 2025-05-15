@@ -56,3 +56,22 @@ def reset_password(db: Session, token: str, new_password: str):
         db.refresh(user)
         return user
     return None
+
+def get_api_keys_for_user(db: Session, user_id: int):
+    return db.query(APIKey).filter(APIKey.user_id == user_id).all()
+
+def renew_api_key(db: Session, api_key_id: int, user_id: int):
+    api_key = db.query(APIKey).filter(APIKey.id == api_key_id, APIKey.user_id == user_id).first()
+    if api_key:
+        api_key.expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=3)
+        db.commit()
+        db.refresh(api_key)
+    return api_key
+
+def revoke_api_key(db: Session, api_key_id: int, user_id: int):
+    api_key = db.query(APIKey).filter(APIKey.id == api_key_id, APIKey.user_id == user_id).first()
+    if api_key:
+        db.delete(api_key)
+        db.commit()
+        return True
+    return False

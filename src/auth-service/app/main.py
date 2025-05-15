@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan, title="AuthService", openapi_url="/openapi.json")
+app = FastAPI(lifespan=lifespan, title="AuthService", openapi_url="/openapi.json", swagger_ui_parameters={"persistAuthorization": True})
 
 FastAPIInstrumentor.instrument_app(app)
 

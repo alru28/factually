@@ -11,3 +11,4 @@ opentelemetry-exporter-otlp-proto-http==1.28.0
 opentelemetry-instrumentation-fastapi==0.49b0
 opentelemetry-instrumentation-sqlalchemy==0.49b0
 opentelemetry-instrumentation-logging==0.49b0
+python-jose[cryptography]==3.3.0

@@ -53,6 +53,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
       - MAILHOG_HOST=mailhog
       - MAILHOG_PORT=1025
+      - SECRET_KEY=jwt-secret
     ports:
       - "8004:8000"
     networks:
