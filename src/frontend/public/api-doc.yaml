@@ -1,0 +1,981 @@
+openapi: 3.0.3
+info:
+  title: Factually API Gateway
+  version: 1.0.0
+  description: Unified API Gateway for Factually Microservices Ecosystem
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.factually.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and API key management
+  - name: Extraction
+    description: Web content extraction operations
+  - name: Orchestration
+    description: Workflow orchestration management
+  - name: Storage
+    description: Article and source data management
+  - name: Transformation
+    description: NLP content transformation services
+  - name: Verification
+    description: Claim verification services
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Email already registered
+  
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login, returns JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials or email not verified
+
+  /auth/apikeys:
+    get:
+      tags: [Authentication]
+      summary: List API keys
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user's API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIKeyResponse'
+    post:
+      tags: [Authentication]
+      summary: Generate API key
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: API key generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyResponse'
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Email not verified
+
+  /auth/apikeys/{api_key_id}/renew:
+    post:
+      tags: [Authentication]
+      summary: Renew API key expiration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: api_key_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: API key renewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyResponse'
+        '404':
+          description: API key not found
+
+  /auth/apikeys/{api_key_id}:
+    delete:
+      tags: [Authentication]
+      summary: Revoke API key
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: api_key_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: API key revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: API key not found
+
+  /auth/validate:
+    get:
+      tags: [Authentication]
+      summary: Validate API key
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: API key is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+        '401':
+          description: Invalid or expired API key
+
+  /auth/password-reset/request:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Reset token sent
+        '404':
+          description: Email not found
+
+  /auth/password-reset/confirm:
+    post:
+      tags: [Authentication]
+      summary: Confirm password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid token
+
+  /auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Verify email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+        '400':
+          description: Invalid token
+
+  # Extraction Endpoints
+  /extraction/scrape/source:
+    post:
+      tags: [Extraction]
+      summary: Scrape specific source
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceScrapeRequest'
+      responses:
+        '200':
+          description: Scraping completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /extraction/scrape/all:
+    post:
+      tags: [Extraction]
+      summary: Scrape all sources
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScrapeRequest'
+      responses:
+        '200':
+          description: Scraping completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  # Orchestration Endpoints
+  /orchestrator/workflows:
+    post:
+      tags: [Orchestration]
+      summary: Start new workflow
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRequest'
+      responses:
+        '201':
+          description: Workflow started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowResponse'
+
+  # Storage Endpoints
+  /storage/articles:
+    post:
+      tags: [Storage]
+      summary: Create article
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Article'
+      responses:
+        '201':
+          description: Article created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+    get:
+      tags: [Storage]
+      summary: List all articles
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Articles list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Article'
+
+  /storage/articles/bulk:
+    post:
+      tags: [Storage]
+      summary: Create articles in bulk
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Article'
+      responses:
+        '201':
+          description: Articles created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Article'
+
+  /storage/articles/{article_id}:
+    get:
+      tags: [Storage]
+      summary: Get article by ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Article details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+    put:
+      tags: [Storage]
+      summary: Update article
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Article'
+      responses:
+        '200':
+          description: Article updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+    delete:
+      tags: [Storage]
+      summary: Delete article
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Article deleted
+        '404':
+          description: Article not found
+
+  /storage/sources:
+    post:
+      tags: [Storage]
+      summary: Create source
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Source'
+      responses:
+        '201':
+          description: Source created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+    get:
+      tags: [Storage]
+      summary: List all sources
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Sources list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source'
+
+  /storage/sources/{source_id}:
+    get:
+      tags: [Storage]
+      summary: Get source by ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Source details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+    put:
+      tags: [Storage]
+      summary: Update source
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Source'
+      responses:
+        '200':
+          description: Source updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+    delete:
+      tags: [Storage]
+      summary: Delete source
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Source deleted
+        '404':
+          description: Source not found
+
+  /storage/search:
+    post:
+      tags: [Storage]
+      summary: Search articles
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchResult'
+
+  /storage/health:
+    get:
+      tags: [Storage]
+      summary: Service health check
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  # Transformation Endpoints
+  /transformation/summarize:
+    post:
+      tags: [Transformation]
+      summary: Summarize articles
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummarizeRequest'
+      responses:
+        '200':
+          description: Summarization results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummarizeResponse'
+
+  /transformation/sentiment:
+    post:
+      tags: [Transformation]
+      summary: Analyze sentiment
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SentimentRequest'
+      responses:
+        '200':
+          description: Sentiment results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SentimentResponse'
+
+  /transformation/classify:
+    post:
+      tags: [Transformation]
+      summary: Classify articles
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassificationRequest'
+      responses:
+        '200':
+          description: Classification results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationResponse'
+
+  # Verification Endpoints
+  /verification/claim:
+    post:
+      tags: [Verification]
+      summary: Verify claim
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResult'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # Authentication Service Schemas
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+    
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
+
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    PasswordResetConfirm:
+      type: object
+      properties:
+        token:
+          type: string
+        new_password:
+          type: string
+      required: [token, new_password]
+
+    UserCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        is_active:
+          type: boolean
+        is_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    APIKeyResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    ValidateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    
+    VerifyEmailRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      required: [token]
+
+    # Extraction Service Schemas
+    ScrapeRequest:
+      type: object
+      properties:
+        date_base:
+          type: string
+          format: date
+        date_cutoff:
+          type: string
+          format: date
+
+    SourceScrapeRequest:
+      allOf:
+        - $ref: '#/components/schemas/ScrapeRequest'
+        - type: object
+          properties:
+            name:
+              type: string
+
+    # Orchestration Service Schemas
+    WorkflowRequest:
+      type: object
+      properties:
+        workflow_type:
+          type: string
+          enum: [extraction_transformation, transformation, extraction]
+        sources:
+          type: array
+          items:
+            type: string
+        articles:
+          type: array
+          items:
+            type: string
+            format: uuid
+        date_base:
+          type: string
+          format: date
+        date_cutoff:
+          type: string
+          format: date
+      required: [workflow_type, date_base, date_cutoff]
+
+    WorkflowResponse:
+      type: object
+      properties:
+        correlation_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+
+    # Storage Service Schemas
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        Title:
+          type: string
+        Date:
+          type: string
+          format: date
+        Link:
+          type: string
+          format: uri
+        Source:
+          type: string
+          format: uri
+        Paragraphs:
+          type: array
+          items:
+            type: string
+        References:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reference'
+        Summary:
+          type: string
+        Sentiment:
+          type: string
+        Classification:
+          type: array
+          items:
+            type: string
+
+    Reference:
+      type: object
+      properties:
+        Text:
+          type: string
+        Link:
+          type: string
+          format: uri
+    
+    Source:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        base_url:
+          type: string
+          format: uri
+        url:
+          type: string
+        article_selector:
+          type: string
+        date_format:
+          type: string
+        button_selector:
+          type: string
+      required: [name, base_url, url]
+
+    SearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        alpha:
+          type: number
+          format: float
+          default: 0.5
+        limit:
+          type: integer
+          default: 3
+
+    SearchResult:
+      type: object
+      properties:
+        Title:
+          type: string
+        Date:
+          type: string
+          format: date
+        Summary:
+          type: string
+        Source:
+          type: string
+      required: [Title, Date, Source, Summary]
+
+    # Transformation Service Schemas
+    ArticleRequest:
+      type: object
+      properties:
+        article_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required: [article_ids]
+
+    SummarizeRequest:
+      allOf:
+        - $ref: '#/components/schemas/ArticleRequest'
+
+    ArticleSummary:
+      type: object
+      properties:
+        article_id:
+          type: string
+          format: uuid
+        summary:
+          type: string
+      required: [article_id, summary]
+
+    SummarizeResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSummary'
+
+    SentimentRequest:
+      allOf:
+        - $ref: '#/components/schemas/ArticleRequest'
+
+    ArticleSentiment:
+      type: object
+      properties:
+        article_id:
+          type: string
+          format: uuid
+        sentiment:
+          type: string
+        score:
+          type: number
+      required: [article_id, sentiment]
+
+    SentimentResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSentiment'
+
+    ClassificationRequest:
+      allOf:
+        - $ref: '#/components/schemas/ArticleRequest'
+
+    ArticleClassification:
+      type: object
+      properties:
+        article_id:
+          type: string
+          format: uuid
+        category:
+          type: string
+        confidence:
+          type: number
+      required: [article_id, category]
+
+    ClassificationResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleClassification'
+
+    # Verification Service Schemas
+    ClaimRequest:
+      type: object
+      properties:
+        Claim:
+          type: string
+      required: [Claim]
+    
+    VerificationResult:
+      type: object
+      properties:
+        Claim:
+          type: string
+        Verdict:
+          type: string
+        Evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceItem'
+
+    EvidenceItem:
+      type: object
+      properties:
+        Title:
+          type: string
+        Source:
+          type: string
+        Date:
+          type: string
+          format: date
+
+security:
+  - ApiKeyAuth: []
