@@ -1,8 +1,14 @@
 import axios from 'axios';
 
+interface ApiKey {
+  created_at: string;
+  id: number;
+  key: string;
+  expires_at: string;
+}
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.API_GATEWAY_URL || "http://localhost:8007",
+  baseURL: import.meta.env.API_GATEWAY_URL || "http://localhost:8000",
   headers: {
     'Content-Type': 'application/json',
   },
@@ -35,7 +41,10 @@ export const verifyEmail = (token: string) => {
 // API Key Management
 
 export const getApiKeys = () => {
-  return apiClient.get('/auth/apikeys', authHeader());
+  return apiClient.get<{ api_keys: ApiKey[] }>('/auth/apikeys', {
+    ...authHeader(),
+    validateStatus: (status) => status === 200 || status === 404
+  });
 };
 
 export const generateApiKey = () => {

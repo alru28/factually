@@ -5,5 +5,6 @@ EXPOSE 8007
 COPY ./app .
 
 RUN deno install && \
-    deno run build && \
-    deno run -A jsr:@std/http/file-server dist --port 8007
+    deno run build
+
+CMD ["deno", "run", "-A", "./dist/server/entry.mjs"]

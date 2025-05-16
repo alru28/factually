@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { loginUser, registerUser, requestPasswordReset, getApiKeys, generateApiKey } from '../../api/auth'
+import { loginUser, registerUser, requestPasswordReset, getApiKeys, generateApiKey, renewApiKey, revokeApiKey } from '../../api/auth'
 import LoginForm from './LoginForm.tsx'
 import PasswordResetForm from './PasswordResetForm.tsx'
 import RegisterForm from './RegisterForm.tsx'
@@ -7,8 +7,9 @@ import ApiKeyManager from './ApiKeyManager.tsx'
 import { AxiosError } from 'axios';
 
 interface ApiKey {
+  created_at: string;
   id: number;
-  prefix: string;
+  key: string;
   expires_at: string;
 }
 
@@ -34,9 +35,18 @@ const [message, setMessage] = useState<Message>({ type: '', content: '' });
     try {
       const response = await getApiKeys()
       setIsLoggedIn(true)
-      setApiKeys(response.data)
+      setApiKeys(response.data.api_keys || [])
     } catch (err) {
-      localStorage.removeItem('token')
+      const error = err as AxiosError;
+      if (error.response?.status === 404) {
+        // No API keys found - valid empty state
+        setIsLoggedIn(true);
+        setApiKeys([]);
+      } else {
+        // Other errors - log out
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+      }
     }
   }
 
@@ -60,19 +70,37 @@ const [message, setMessage] = useState<Message>({ type: '', content: '' });
           const newKey = await generateApiKey()
           setApiKeys([...apiKeys, newKey.data])
           break
+        case 'renew':
+          await renewApiKey(data.api_key_id);
+          const renewedKeys = await getApiKeys();
+          setApiKeys(renewedKeys.data.api_keys || []);
+          break;
+        case 'revoke':
+          await revokeApiKey(data.api_key_id);
+          setApiKeys(prev => prev.filter(key => key.id !== data.api_key_id));
+          break;
       }
     } catch (err) {
         const error = err as AxiosError;
+        console.error('API Error:', error);
+
         setMessage({
-        type: 'error',
-        content: error.response?.data || 'An error occurred'
+          type: 'error',
+          content: 'An unexpected error occurred'
         });
     }
   }
 
   if (isLoggedIn) {
-    return <ApiKeyManager apiKeys={apiKeys} onGenerate={() => handleAuthAction('generate', {})} />
-  }
+  return (
+    <ApiKeyManager 
+      apiKeys={apiKeys} 
+      onGenerate={() => handleAuthAction('generate', {})}
+      onRenew={(apiKeyId) => handleAuthAction('renew', { api_key_id: apiKeyId })}
+      onRevoke={(apiKeyId) => handleAuthAction('revoke', { api_key_id: apiKeyId })}
+    />
+  );
+}
 
   return (
     <div className="bg-fact-blue-800 rounded-xl shadow-lg p-8">
