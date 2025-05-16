@@ -2,6 +2,16 @@ name: factually
 
 services:
   # API Gateway and Services
+  frontend:
+    build: ./frontend
+    ports:
+      - "8007:8007"
+    networks:
+      - factually-network
+    depends_on:
+      - gateway
+    environment:
+      - API_GATEWAY_URL=http://gateway:8000
   gateway:
     build: ./api-gateway
     ports:
@@ -169,7 +179,7 @@ services:
     command: mongod --quiet --logpath /dev/null
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.7.0
     volumes:
       - ollama_data:/root/.ollama
     pull_policy: always

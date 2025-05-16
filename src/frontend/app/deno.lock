@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "npm:@astrojs/react@^4.2.7": "4.2.7_@types+react@19.1.4_@types+react-dom@19.1.5__@types+react@19.1.4_react@19.1.0_react-dom@19.1.0__react@19.1.0_vite@6.3.5__picomatch@4.0.2",
+    "npm:@deno/astro-adapter@0.3": "0.3.0_astro@5.7.13__vite@6.3.5___picomatch@4.0.2__zod@3.24.4",
     "npm:@tailwindcss/vite@^4.1.7": "4.1.7_vite@6.3.5__picomatch@4.0.2",
     "npm:@types/react-dom@^19.1.5": "19.1.5_@types+react@19.1.4",
     "npm:@types/react@^19.1.4": "19.1.4",
@@ -221,6 +222,12 @@
         "blob-to-buffer",
         "cross-fetch",
         "fontkit"
+      ]
+    },
+    "@deno/astro-adapter@0.3.0_astro@5.7.13__vite@6.3.5___picomatch@4.0.2__zod@3.24.4": {
+      "integrity": "sha512-HlN0k8XALGbzWCm58OPJBHWWpJUVXrAZRbEL/VUmZpVTl23+k3qlx7Pjdk1NcVNu1hKVl/6WTdwh9GUzd02Lpg==",
+      "dependencies": [
+        "astro"
       ]
     },
     "@emnapi/core@1.4.3": {
@@ -2866,6 +2873,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@astrojs/react@^4.2.7",
+        "npm:@deno/astro-adapter@0.3",
         "npm:@tailwindcss/vite@^4.1.7",
         "npm:@types/react-dom@^19.1.5",
         "npm:@types/react@^19.1.4",

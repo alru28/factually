@@ -1,6 +1,6 @@
 ---
 import MainLayout from "../layouts/MainLayout.astro";
-import Button from "../components/Button.astro";
+import Button from "../components/Button.tsx";
 ---
 
 <MainLayout>
@@ -8,7 +8,7 @@ import Button from "../components/Button.astro";
     <h1 class="text-4xl font-bold">Welcome to Factually</h1>
     <p class="mt-4 text-fact-blue-200">Your gateway to seamless API integration.</p>
     <div class="mt-6 space-x-4">
-      <Button href="/auth">Manage Your API Key</Button>
+      <Button href="/auth">Manage Your API Keys</Button>
       <Button href="/docs">Read the Docs</Button>
     </div>
   </section>

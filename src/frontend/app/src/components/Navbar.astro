@@ -1,5 +1,6 @@
 ---
 import Banner from "./Banner.astro";
+import Button from "./Button.tsx";
 const links = [
   { href: "/", label: "Home" },
   { href: "/auth", label: "Auth" },
@@ -8,21 +9,14 @@ const links = [
 ---
 <header class="bg-fact-blue-900 shadow">
   <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
-    <!-- Logo on the left -->
     <div class="flex items-center space-x-2">
       <Banner width={100} height={20} />
     </div>
 
-    <!-- Nav links on the right -->
     <ul class="flex gap-5">
       {links.map((link) => (
         <li>
-          <a 
-            href={link.href} 
-            class="bg-fact-blue-700 rounded-xl shadow-lg p-2 flex flex-col font-fact-serif font-bold justify-between text-white hover:bg-fact-blue-300 transition"
-          >
-            {link.label}
-          </a>
+          <Button href={link.href}>{link.label}</Button>
         </li>
       ))}
     </ul>
