@@ -24,8 +24,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         created_user = create_user(db, user)
         send_email(
             recipient=created_user.email,
-            subject="Verify your email",
-            body=f"Please verify your email using this token: {created_user.email_verification_token}"
+            subject="Factually | Email Verification",
+            body=f"Please verify your email using this token: {created_user.email_verification_token}\nYou can also use this link: http://localhost:8007/verify?token={created_user.email_verification_token}"
         )
         logger.info(f"User {user.email} registered successfully; verification email sent")
     except Exception as e:
