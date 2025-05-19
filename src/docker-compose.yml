@@ -2,6 +2,16 @@ name: factually
 
 services:
   # API Gateway and Services
+  frontend:
+    build: ./frontend
+    ports:
+      - "8007:8007"
+    networks:
+      - factually-network
+    depends_on:
+      - gateway
+    environment:
+      - API_GATEWAY_URL=http://localhost:8000
   gateway:
     build: ./api-gateway
     ports:
@@ -53,6 +63,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db
       - MAILHOG_HOST=mailhog
       - MAILHOG_PORT=1025
+      - SECRET_KEY=jwt-secret
     ports:
       - "8004:8000"
     networks:
@@ -168,7 +179,7 @@ services:
     command: mongod --quiet --logpath /dev/null
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.7.0
     volumes:
       - ollama_data:/root/.ollama
     pull_policy: always

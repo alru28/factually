@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from app.utils.logger import DefaultLogger
 from app.db.database import get_db
-from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm, VerifyEmailRequest
+from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm, VerifyEmailRequest, TokenResponse, APIKeyListResponse
 from app.db.schema import User, APIKey
 from sqlalchemy.orm import Session
-from app.db.crud import create_user, get_user_by_email, create_api_key, verify_email, create_password_reset_token, reset_password
-from app.utils.security import verify_password
+from app.db.crud import create_user, get_user_by_email, create_api_key, verify_email, create_password_reset_token, reset_password, revoke_api_key, renew_api_key, get_api_keys_for_user
+from app.utils.security import verify_password, create_jwt, get_current_user
 from app.utils.mail_helper import send_email
 import datetime
 
@@ -24,8 +24,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         created_user = create_user(db, user)
         send_email(
             recipient=created_user.email,
-            subject="Verify your email",
-            body=f"Please verify your email using this token: {created_user.email_verification_token}"
+            subject="Factually | Email Verification",
+            body=f"Please verify your email using this token: {created_user.email_verification_token}\nYou can also use this link: http://localhost:8007/verify?token={created_user.email_verification_token}"
         )
         logger.info(f"User {user.email} registered successfully; verification email sent")
     except Exception as e:
@@ -34,27 +34,20 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     return created_user
 
 # Login Endpoint
-# @router.post("/login")
-# async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
-#     user = get_user_by_email(db, credentials.email)
-#     if not user or not verify_password(credentials.password, user.hashed_password):
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-#     if not user.is_verified:
-#         raise HTTPException(status_code=401, detail="Email not verified")
-#     # Normally, generate and return a JWT token; here we return a simple message.
-#     return {"message": "Login successful"}
-
-# API Key Request Endpoint
-@router.post("/apikeys", response_model=APIKeyResponse)
-async def request_api_key(credentials: LoginRequest, db: Session = Depends(get_db)):
-    logger.info(f"Received API Key request for user {credentials.email}")
+@router.post("/login", response_model=TokenResponse)
+async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    logger.info(f"Received login request for user {credentials.email}")
     user = get_user_by_email(db, credentials.email)
     if not user or not verify_password(credentials.password, user.hashed_password):
-        logger.error(f"API Key request failed for user {credentials.email}: Invalid credentials")
+        logger.error(f"Login failed for user {credentials.email}: Invalid credentials")
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    api_key = create_api_key(db, user.id)
-    logger.info(f"API Key provisioned succesfully for user {credentials.email}")
-    return api_key
+    if not user.is_verified:
+        logger.error(f"Login failed for user {credentials.email}: Email not verified")
+        raise HTTPException(status_code=401, detail="Email not verified")
+    logger.info(f"User {user.email} login successfully; generated JWT token")
+    token = create_jwt(user.id)
+    response = TokenResponse(access_token=token)
+    return response
 
 # API Key Validation Endpoint
 @router.get("/validate")
@@ -75,7 +68,72 @@ async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: 
         raise HTTPException(status_code=401, detail="API key expired")
     
     logger.info(f"API key validated successfully for user ID {api_key.user_id}")
-    return {"message": "API key is valid", "user_id": api_key.user_id}
+    return {"message": "API key is valid"}
+
+# API Key Request Endpoint
+@router.post("/apikeys", response_model=APIKeyResponse)
+async def request_api_key(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    logger.info(f"Received API Key request for user {current_user.email}")
+    if not current_user.is_verified:
+        raise HTTPException(status_code=403, detail="Email not verified")
+    api_key = create_api_key(db, current_user.id)
+    logger.info(f"API Key provisioned succesfully for user {current_user.email}")
+    return api_key
+
+# List API keys
+@router.get("/apikeys", response_model=APIKeyListResponse)
+async def list_api_keys(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    logger.info("Received API key listing request")
+    api_keys = get_api_keys_for_user(db, current_user.id)
+    if not api_keys:
+        logger.error(f"No API keys found for user ID {current_user.id}")
+        raise HTTPException(status_code=404, detail="No API keys found")
+    logger.info(f"API keys listed successfully for user ID {current_user.id}")
+    response = []
+    for key in api_keys:
+        formatted_key = APIKeyResponse(
+            id=key.id,
+            key=key.key,
+            created_at=key.created_at,
+            expires_at=key.expires_at,
+        )
+        response.append(formatted_key)
+    return APIKeyListResponse(api_keys=response)
+
+# Renew API key
+@router.post("/apikeys/{api_key_id}/renew", response_model=APIKeyResponse)
+async def renew_key(
+    api_key_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    logger.info("Received API key renewal request")
+    api_key = renew_api_key(db, api_key_id, current_user.id)
+    if not api_key:
+        logger.error(f"There's no such API Key for user ID {current_user.id}")
+        raise HTTPException(status_code=404, detail="API key not found")
+    logger.info("API key renewed successfully for user ID {api_key.user_id}")
+    return api_key
+
+# Revoke API key
+@router.delete("/apikeys/{api_key_id}")
+async def revoke_key(
+    api_key_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    logger.info("Received API key revoke request")
+    if not revoke_api_key(db, api_key_id, current_user.id):
+        logger.error(f"There's no such API Key for user ID {current_user.id} or it has already been revoked")
+        raise HTTPException(status_code=404, detail="API key not found or already revoked")
+    logger.info(f"API key revoked successfully for user ID {current_user.id}")
+    return {"message": "API key revoked successfully"}
 
 # Password Reset Request Endpoint
 @router.post("/password-reset/request")

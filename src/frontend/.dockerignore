@@ -1,0 +1,7 @@
+tests/
+*.pyc
+__pycache__/
+.git
+.DS_Store
+node_modules
+dist

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@media (prefers-color-scheme: dark) {
+    @theme {
+    --color-fact-blue-50: #e6f0fa;
+    --color-fact-blue-100: #cce1f5;
+    --color-fact-blue-200: #99c4eb;
+    --color-fact-blue-300: #66a6e0;
+    --color-fact-blue-400: #3389d6;
+    --color-fact-blue-500: #006bcc;
+    --color-fact-blue-600: #0056a3;
+    --color-fact-blue-700: #00407a;
+    --color-fact-blue-800: #002b52;
+    --color-fact-blue-900: #001529;
+    --color-fact-blue-950: #000b14;
+    --font-fact-serif: sans-serif;
+    }
+}

@@ -1,0 +1,11 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import EmailVerifyPage from '../components/auth/EmailVerifyPage.tsx';
+---
+
+<MainLayout>
+  <div class="max-w-md mx-auto bg-nightly-900 p-6 rounded-xl text-center space-y-6">
+    <h1 class="text-4xl font-bold">Email Verification</h1>
+    <EmailVerifyPage client:load />
+  </div>
+</MainLayout>

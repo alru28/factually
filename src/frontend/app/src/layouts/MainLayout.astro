@@ -1,0 +1,22 @@
+---
+import "../styles/global.css";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+---
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content={Astro.generator} />
+  <link rel="icon" type="image/png" href="/Factually_Icon.png" />
+  <title>Factually</title>
+</head>
+<body class="bg-fact-blue-950 text-white flex flex-col min-h-screen">
+  <Navbar />
+  <main class="max-w-5xl mx-auto flex-grow p-6">
+    <slot />
+  </main>
+  <Footer />
+</body>
+</html>

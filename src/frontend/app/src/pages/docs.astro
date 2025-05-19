@@ -1,0 +1,16 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import Button from "../components/Button.tsx";
+---
+
+
+
+<MainLayout>
+  <section class="text-center">
+    <h2 class="text-4xl font-bold">API Documentation</h2>
+    <p class="mb-4">Use our interactive API documentation playground to test API endpoints directly.</p>
+    <div class="mt-6 space-x-4">
+      <Button href="http://localhost:8000/docs">Go to Swagger Playground</Button>
+    </div>
+  </section>
+</MainLayout>
