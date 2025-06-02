@@ -18,7 +18,7 @@ export default function LoginForm({ onSubmit, onForgotPassword }: LoginFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium">Email</label>
+        <label className="block text-sm font-medium mb-2">Email</label>
         <input
           type="email"
           value={email}
@@ -44,7 +44,7 @@ export default function LoginForm({ onSubmit, onForgotPassword }: LoginFormProps
       </Button>
 
       <Button type="submit" className="w-full" onClick={onForgotPassword}>
-        Forgot Password?
+        Reset Password
       </Button>
     </form>
   )

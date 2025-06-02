@@ -1,15 +1,23 @@
 ---
 import MainLayout from "../layouts/MainLayout.astro";
 import Button from "../components/Button.tsx";
+import Card from "../components/Card.astro";
 ---
 
 <MainLayout>
-  <section class="text-center">
-    <h1 class="text-4xl font-bold">Welcome to Factually</h1>
-    <p class="mt-4 text-fact-blue-200">Your gateway to seamless API integration.</p>
-    <div class="mt-6 space-x-4">
-      <Button href="/auth">Manage Your API Keys</Button>
-      <Button href="/docs">Read the Docs</Button>
-    </div>
+  <section class="text-center py-8">
+    <h1 class="text-4xl font-bold py-4">Welcome to Factually</h1>
+    <Button href="/auth" className="text-lg px-6 py-3">Get Started</Button>
+  </section>
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 py-12">
+    <Card title="Easy Authentication">
+      Secure, reliable, and intuitive user authentication.
+    </Card>
+    <Card title="API Key Management">
+      Generate, renew, and revoke API keys effortlessly.
+    </Card>
+    <Card title="Dynamic Verification">
+      Verify claims against news articles with our cutting-edge AI technology.
+    </Card>
   </section>
 </MainLayout>
