@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from typing import List
 from app.utils.services import search_articles
 from app.models import VerificationResult, EvidenceItem
@@ -21,13 +22,27 @@ class ClaimVerifier:
         ollama_model = OpenAIModel(
             model_name=OLLAMA_MODEL, provider=OpenAIProvider(base_url=OLLAMA_CONNECTION_STRING + "/v1")
         )
-        self.agent = Agent(
+        self.verifier_agent = Agent(
             ollama_model,
             result_type=VerificationResult,
             instrument=True,
             system_prompt=(
                 "You evaluate whether a claim is true or false based on provided news contexts. "
                 "Respond with JSON matching VerificationResult."
+            ),
+        )
+
+        self.search_agent = Agent(
+            OpenAIModel(
+                model_name=OLLAMA_MODEL, provider=OpenAIProvider(base_url=OLLAMA_CONNECTION_STRING + "/v1")
+            ),
+            tools=[duckduckgo_search_tool()],
+            result_type=List[EvidenceItem],
+            instrument=True,
+            system_prompt=(
+                "You are a fact-checking assistant. When provided with a claim, "
+                "search the web using DuckDuckGo to find relevant information that can help verify the claim. "
+                "Respond with JSON matching List[EvidenceItem]."
             ),
         )
 
@@ -51,7 +66,7 @@ class ClaimVerifier:
             raise Exception("ClaimVerifier not initialized; call init_verifier first")
         return cls._instance
 
-    async def verify(self, claim: str) -> VerificationResult:
+    async def verify(self, claim: str, web_search: bool) -> VerificationResult:
         """
         Embeds the claim, retrieves supporting context,
         and returns the final VerificationResult.
@@ -69,8 +84,8 @@ class ClaimVerifier:
             )
         context = "\n\n".join(snippets)
 
-        result = await self.agent.run(self.prompt_template.format(claim=claim, context=context))
-        verification: VerificationResult = result.output
+        result = await self.verifier_agent.run(self.prompt_template.format(claim=claim, context=context))
+        verification: VerificationResult = result.output   
 
         # REFORMATEAR EVIDENCIAS
         structured: List[EvidenceItem] = []
@@ -96,7 +111,61 @@ class ClaimVerifier:
                     continue
             else:
                 continue
-
         verification.Evidence = structured
+
+        if verification.Verdict.lower() == "undetermined" and web_search:
+            try:
+                logger.info("Verification result is undetermined, performing web search for additional evidence.")
+                search_result = await self.search_agent.run(claim)
+                additional_evidence: List[EvidenceItem] = search_result.output
+                verification.Evidence = additional_evidence
+                verification.WebSearchPerformed = True
+                logger.info(f"Web search performed, found {len(additional_evidence)} additional evidence items.")
+
+                additional_snippets = []
+                for idx, ev in enumerate(additional_evidence, 1):
+                    additional_snippets.append(
+                        f"Web Entry {idx}:\n"
+                        f"  Title: {ev.Title}\n"
+                        f"  Date:  {ev.Date}\n"
+                        f"  Source: {ev.Source}"
+                    )
+                new_context = context + "\n\n" + "\n\n".join(additional_snippets)
+                
+                web_verification_result = await self.verifier_agent.run(self.prompt_template.format(claim=claim, context=new_context))
+                web_verification: VerificationResult = web_verification_result.output
+
+                reassessed_structured: List[EvidenceItem] = []
+                for ev in web_verification.Evidence:
+                    if isinstance(ev, EvidenceItem):
+                        reassessed_structured.append(ev)
+                    elif isinstance(ev, dict):
+                        reassessed_structured.append(EvidenceItem(**ev))
+                    elif isinstance(ev, str):
+                        m = re.match(r"Article\s+(\d+):", ev)
+                        if m:
+                            idx = int(m.group(1)) - 1
+                            art = articles[idx]
+                            reassessed_structured.append(
+                                EvidenceItem(
+                                    Title=art["Title"],
+                                    Source=art["Source"],
+                                    Date=art["Date"]
+                                )
+                            )
+                        else:
+                            continue
+                    else:
+                        continue
+                web_verification.Evidence = reassessed_structured
+                web_verification.WebSearchPerformed = True
+
+                logger.info(f"Claim  reassessment using web search result: {web_verification.Verdict}")
+                return web_verification
+            
+            except Exception as e:
+                logger.error(f"Error during web search: {e}")
+                verification.WebSearchPerformed = False
+
         logger.info(f"Claim verification result: {verification.Verdict}")
         return verification

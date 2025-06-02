@@ -17,6 +17,8 @@ class VerificationResult(BaseModel):
     Claim: str
     Verdict: str
     Evidence: List[EvidenceItem]
+    WebSearchPerformed: bool = False
 
 class ClaimRequest(BaseModel):
     Claim: str
+    WebSearch: bool = False

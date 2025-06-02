@@ -952,6 +952,9 @@ components:
       properties:
         Claim:
           type: string
+        WebSearch:
+          type: boolean
+          default: false
       required: [Claim]
     
     VerificationResult:
@@ -965,6 +968,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EvidenceItem'
+        WebSearchPerformed:
+          type: boolean
 
     EvidenceItem:
       type: object
