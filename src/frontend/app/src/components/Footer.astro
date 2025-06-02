@@ -1,5 +1,28 @@
-<footer class="bg-fact-blue-900 py-4 mt-10">
-  <div class="container mx-auto text-center text-sm">
-    © 2025 Factually. All rights reserved.
+<footer class="bg-fact-blue-900 text-fact-blue-200 py-8 px-4">
+  <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+    <div class="md:text-left text-center order-1 md:order-1">
+      <h3 class="text-lg font-semibold">Factually</h3>
+      <p class="text-sm">Instant news verification at your fingertips.</p>
+    </div>
+
+    <div class="flex items-center gap-8">
+        <div class="text-sm text-right">
+          <p>Email: <a href="mailto:support@factually.com" class="hover:text-fact-blue-400">support@factually.com</a></p>
+          <p>Phone: (+34) 6123835926</p>
+        </div>
+        
+        <div class="flex gap-4">
+          <a href="https://github.com/alru28/factually" target="_blank" aria-label="GitHub" 
+             class="hover:opacity-80 transition-opacity">
+            <img src="/github.svg" class="h-6 w-6"/>
+          </a>
+          <a href="https://www.linkedin.com/in/álvaro-ruiz-bravo-9a8b32206" target="_blank" aria-label="LinkedIn"
+             class="hover:opacity-80 transition-opacity">
+            <img src="/linkedin.svg" class="h-6 w-6"/>
+          </a>
+        </div>
+    </div>
+  <div class="text-center mt-6 text-xs">
+    © {new Date().getFullYear()} Factually. All rights reserved.
   </div>
 </footer>
