@@ -13,6 +13,12 @@ class EvidenceItem(BaseModel):
     Source: str
     Date: str
 
+class WebEvidenceItem(BaseModel):
+    Title: str
+    Source: str
+    Date: str
+    Summary: str
+
 class VerificationResult(BaseModel):
     Claim: str
     Verdict: str

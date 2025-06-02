@@ -50,7 +50,7 @@ async def proxy_request(request: Request, target_url: str, headers=None):
 
     headers = headers or dict(request.headers)
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             response = await client.request(method, target_url, headers=headers, content=content)
             return Response(content=response.content, status_code=response.status_code, headers=response.headers)

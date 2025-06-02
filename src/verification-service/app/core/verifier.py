@@ -7,7 +7,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from typing import List
 from app.utils.services import search_articles
-from app.models import VerificationResult, EvidenceItem
+from app.models import VerificationResult, EvidenceItem, WebEvidenceItem
 import re
 
 logger = DefaultLogger().get_logger()
@@ -37,12 +37,12 @@ class ClaimVerifier:
                 model_name=OLLAMA_MODEL, provider=OpenAIProvider(base_url=OLLAMA_CONNECTION_STRING + "/v1")
             ),
             tools=[duckduckgo_search_tool()],
-            result_type=List[EvidenceItem],
+            result_type=List[WebEvidenceItem],
             instrument=True,
             system_prompt=(
                 "You are a fact-checking assistant. When provided with a claim, "
                 "search the web using DuckDuckGo to find relevant information that can help verify the claim. "
-                "Respond with JSON matching List[EvidenceItem]."
+                "Respond with JSON matching List[WebEvidenceItem]."
             ),
         )
 
@@ -117,20 +117,20 @@ class ClaimVerifier:
             try:
                 logger.info("Verification result is undetermined, performing web search for additional evidence.")
                 search_result = await self.search_agent.run(claim)
-                additional_evidence: List[EvidenceItem] = search_result.output
+                additional_evidence: List[WebEvidenceItem] = search_result.output
                 verification.Evidence = additional_evidence
                 verification.WebSearchPerformed = True
-                logger.info(f"Web search performed, found {len(additional_evidence)} additional evidence items.")
+                logger.info(f"Web search performed, found {len(additional_evidence)} additional web evidence items.")
 
-                additional_snippets = []
-                for idx, ev in enumerate(additional_evidence, 1):
-                    additional_snippets.append(
+                new_context = []
+                for idx, entry in enumerate(additional_evidence, 1):
+                    new_context.append(
                         f"Web Entry {idx}:\n"
-                        f"  Title: {ev.Title}\n"
-                        f"  Date:  {ev.Date}\n"
-                        f"  Source: {ev.Source}"
+                        f"  Title: {entry.Title}\n"
+                        f"  Date:  {entry.Date}\n"
+                        f"  Source: {entry.Source}\n"
+                        f"  Summary: {entry.Summary}"
                     )
-                new_context = context + "\n\n" + "\n\n".join(additional_snippets)
                 
                 web_verification_result = await self.verifier_agent.run(self.prompt_template.format(claim=claim, context=new_context))
                 web_verification: VerificationResult = web_verification_result.output
