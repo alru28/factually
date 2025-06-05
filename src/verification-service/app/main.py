@@ -29,13 +29,11 @@ def check_and_pull_model():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing VerificationService")
-    # Verifier init
     logger.info("Startup event: Initializing Verifier")
     await ClaimVerifier.init_verifier()
     logger.info("Startup event: Initializing Ollama models")
     check_and_pull_model()
     
-    # App running
     yield
 
 app = FastAPI(lifespan=lifespan, title="VerificationService", openapi_url="/openapi.json")

@@ -138,7 +138,7 @@ def scrape_articles_base(
         # IF THERE'S BUTTON SELECTOR -> LOAD MORE PATTERN
         elif source["button_selector"]:
             while True:
-                # This list holds the articles so that no duplicates appear when including the newly loaded ones
+                # LIST TO AVOID DUPLICATES
                 load_more_article_list = []
                 articles_processed, older_than_cutoff = collect_articles(
                     source, driver, url, date_base, date_cutoff

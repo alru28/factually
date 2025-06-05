@@ -18,7 +18,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error creating database tables: {e}")
         raise
-    # App running
     yield
 
 

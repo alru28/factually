@@ -39,11 +39,10 @@ const [message, setMessage] = useState<Message>({ type: '', content: '' });
     } catch (err) {
       const error = err as AxiosError;
       if (error.response?.status === 404) {
-        // No API keys found - valid empty state
+        // NO API KEY, BUT IS LOGGED IN
         setIsLoggedIn(true);
         setApiKeys([]);
       } else {
-        // Other errors - log out
         localStorage.removeItem('token');
         setIsLoggedIn(false);
       }
@@ -86,7 +85,7 @@ const [message, setMessage] = useState<Message>({ type: '', content: '' });
 
         setMessage({
           type: 'error',
-          content: 'An unexpected error occurred'
+          content: 'Wrong credentials'
         });
     }
   }

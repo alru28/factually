@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Query
-from fastapi.encoders import jsonable_encoder
+from fastapi import APIRouter
 from app.utils.logger import DefaultLogger
 from app.models import VerificationResult, ClaimRequest
 from app.core.verifier import ClaimVerifier

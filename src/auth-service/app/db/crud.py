@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.db.schema import User, APIKey
 import datetime
 from app.utils.security import hash_password, generate_token, generate_api_key
-from app.models import UserCreate, UserResponse, LoginRequest, APIKeyResponse, PasswordResetRequest, PasswordResetConfirm
+from app.models import UserCreate
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()

@@ -45,7 +45,7 @@ export default function ApiKeyManager({ apiKeys, onGenerate, onRenew, onRevoke }
             {apiKeys.map(key => (
               <div key={key.id} className="p-4 bg-fact-blue-700 rounded-lg">
                 <div className="flex items-center justify-between gap-4">
-                  {/* Key Info */}
+                  {/* KEY INFO */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <button
@@ -71,7 +71,7 @@ export default function ApiKeyManager({ apiKeys, onGenerate, onRenew, onRevoke }
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* ACTIONS */}
                   <div className="flex items-center gap-4 flex-shrink-0">
                     <button
                       onClick={() => copyToClipboard(key.key, key.id)}

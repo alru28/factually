@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
 
-# ----- User Models -----
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -18,7 +17,6 @@ class UserResponse(BaseModel):
     class Config:
         orm_mode = True
 
-# ----- Authentication -----
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -28,7 +26,6 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-# ----- API Key Models -----
 
 class APIKeyResponse(BaseModel):
     id: int
@@ -42,7 +39,6 @@ class APIKeyResponse(BaseModel):
 class APIKeyListResponse(BaseModel):
     api_keys: List[APIKeyResponse]
 
-# ----- Password Reset Models -----
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -54,7 +50,6 @@ class PasswordResetConfirm(BaseModel):
 class MessageResponse(BaseModel):
     message: str
 
-# ----- Email Verification -----
 
 class VerifyEmailRequest(BaseModel):
     token: str

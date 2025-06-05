@@ -23,7 +23,6 @@ class SafeFormatter(logging.Formatter):
     Custom formatter to ensure that all log records have the required attributes
     """
     def format(self, record):
-        # inject defaults if the record doesn’t have them
         if not hasattr(record, "otelTraceID"):
             record.otelTraceID = "-"
         if not hasattr(record, "otelSpanID"):
@@ -55,11 +54,9 @@ class OpenTelemetryLogger:
         
         LoggingInstrumentor().instrument(set_logging_format=False)
 
-        # Use parameters or fallback to environment variables
         cls._service_name = service_name or SERVICE_NAME
         cls._log_level = log_level or getattr(logging, LOG_LEVEL, logging.INFO)
 
-        # Setup OpenTelemetry components
         resource = Resource.create({
             ResourceAttributes.SERVICE_NAME: cls._service_name,
             ResourceAttributes.SERVICE_VERSION: os.getenv("SERVICE_VERSION", "1.0.0"),
@@ -67,28 +64,23 @@ class OpenTelemetryLogger:
         logger_provider = LoggerProvider(resource=resource)
         set_logger_provider(logger_provider)
 
-        # Configure exporters
         log_exporter = OTLPLogExporter(endpoint=f"{OTLP_ENDPOINT}/v1/logs")
         logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
         
-        # Configure logging handler
         handler = LoggingHandler(
             level=cls._log_level,
             logger_provider=logger_provider,
         )
 
-         # Configure logging format with OpenTelemetry context
         formatter = SafeFormatter(
             "[%(asctime)s] - [%(service_name)s] - [%(levelname)s] - [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
         )
         handler.setFormatter(formatter)      
         
-        # Configure root logger
         root_logger = logging.getLogger()
         root_logger.setLevel(cls._log_level)
         root_logger.addHandler(handler)
 
-        # Auto-initialize tracing if not already configured
         if not isinstance(get_tracer_provider(), TracerProvider):
             trace_provider = TracerProvider(resource=resource)
             trace_provider.add_span_processor(

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from contextlib import asynccontextmanager
 from app.core.scraper import scrape_articles_base, scrape_articles_content
 from app.utils.date_formatter import format_date_str, secure_date_range
@@ -26,10 +26,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during RabbitMQ initialization: {e}")
 
-    # App running
     yield
 
-    # RabbitMQ shutdown
     try:
         await client.close()
         logger.info("RabbitMQ Client connection closed")

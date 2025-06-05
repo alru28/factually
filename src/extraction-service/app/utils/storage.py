@@ -1,8 +1,7 @@
-from app.models import ArticleBase, Article
+from app.models import Article
 from typing import List
 from app.utils.logger import DefaultLogger
 import json
-import csv
 
 
 def str_encoder(obj):

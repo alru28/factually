@@ -48,7 +48,6 @@ async def create_indexes():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing StorageService")
-    # Models and DBs init
     logger.info("Startup event: Initializing MongoDB indexes")
     await create_indexes()
     logger.info("Startup event: Initializing Ollama models")
@@ -57,7 +56,6 @@ async def lifespan(app: FastAPI):
     await WeaviateAsyncClientSingleton.init_client()
     await create_article_schema()    
     
-    # App running
     yield
 
     logger.info("Shutdown event: Closing Weaviate and MongoDB clients")

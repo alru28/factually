@@ -2,7 +2,6 @@ import smtplib
 from email.mime.text import MIMEText
 import os
 
-# Configure these settings accordingly
 SMTP_SERVER = os.getenv("MAILHOG_HOST", "mailhog")     
 SMTP_PORT = int(os.getenv("MAILHOG_PORT", "1025"))
 FROM_EMAIL = "noreply@factually.com"

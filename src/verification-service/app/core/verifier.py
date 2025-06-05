@@ -1,7 +1,6 @@
 import os
 from app.utils.logger import DefaultLogger
-from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
@@ -71,7 +70,6 @@ class ClaimVerifier:
         Embeds the claim, retrieves supporting context,
         and returns the final VerificationResult.
         """
-        # ESTO ES PLACEHOLDER
         articles = await search_articles(claim)
         snippets = []
         for idx, art in enumerate(articles, 1):
@@ -87,11 +85,11 @@ class ClaimVerifier:
         result = await self.verifier_agent.run(self.prompt_template.format(claim=claim, context=context))
         verification: VerificationResult = result.output   
 
-        # REFORMATEAR EVIDENCIAS
+        # REFORMAT EVIDENCE
         structured: List[EvidenceItem] = []
         for ev in verification.Evidence:
-            # SI YA TIENE ESTRUCTURA...
             if isinstance(ev, EvidenceItem):
+                # IF STRUCTURED...
                 structured.append(ev)
             elif isinstance(ev, dict):
                 structured.append(EvidenceItem(**ev))

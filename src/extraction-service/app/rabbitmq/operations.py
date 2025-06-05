@@ -1,5 +1,4 @@
 import json
-import asyncio
 from app.utils.logger import DefaultLogger
 from app.main import get_rabbitmq_client
 from app.utils.date_formatter import secure_date_range

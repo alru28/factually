@@ -1,7 +1,5 @@
-import asyncio
 import json
 from fastapi.encoders import jsonable_encoder
-import logging
 from aio_pika import connect_robust, Message, ExchangeType
 from opentelemetry.instrumentation.aio_pika import AioPikaInstrumentor
 from app.utils.logger import DefaultLogger

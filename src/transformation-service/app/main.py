@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.utils.logger import DefaultLogger
 from app.rabbitmq.client import get_rabbitmq_client
 from app.rabbitmq.operations import handle_message
 from app.api.routes import router as nlp_router
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-import os
 import asyncio
 import uvicorn
 
@@ -23,10 +22,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during RabbitMQ initialization: {e}")
 
-    # App running
     yield
 
-    # RabbitMQ shutdown
     try:
         await client.close()
         logger.info("RabbitMQ Client connection closed")

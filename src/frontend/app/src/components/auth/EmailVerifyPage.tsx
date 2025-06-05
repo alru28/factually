@@ -16,7 +16,7 @@ export default function EmailVerifyPage() {
     verifyEmail(token)
       .then(() => {
         setStatus('success');
-        // after 3s send them back to /auth
+        // REDIRECT
         setTimeout(() => window.location.href = '/auth', 3000);
       })
       .catch(() => {

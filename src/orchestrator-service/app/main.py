@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.utils.logger import DefaultLogger
 from app.rabbitmq.client import get_rabbitmq_client
@@ -24,10 +24,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during RabbitMQ initialization: {e}")
 
-    # App running
     yield
 
-    # RabbitMQ shutdown
     try:
         await client.close()
         logger.info("RabbitMQ Client connection closed")

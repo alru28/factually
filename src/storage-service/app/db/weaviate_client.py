@@ -50,7 +50,7 @@ class WeaviateAsyncClientSingleton:
 
 async def create_article_schema():
     client = WeaviateAsyncClientSingleton.get_client()
-    does_exist = await client.collections.exists("Article")  # async schema retrieval
+    does_exist = await client.collections.exists("Article")
     if does_exist:
         logger.info("Article collection schema already exists in Weaviate")
         return

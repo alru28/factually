@@ -1,7 +1,5 @@
-import asyncio
 import json
 from fastapi.encoders import jsonable_encoder
-import logging
 from aio_pika import connect_robust, Message, ExchangeType
 from opentelemetry.instrumentation.aio_pika import AioPikaInstrumentor
 from app.utils.logger import DefaultLogger
@@ -23,11 +21,11 @@ class RabbitMQClient:
         """
         self.rabbitmq_url = rabbitmq_url
         self.exchange_name = exchange_name
-        self.queues_def = queues or {}  # initial queue definitions
+        self.queues_def = queues or {}
         self.connection = None
         self.channel = None
         self.exchange = None
-        self.queues = {}  # will hold declared queue objects
+        self.queues = {}
 
     async def connect(self):
         """Establish a connection, channel and declare exchange & initial queues."""
@@ -38,7 +36,6 @@ class RabbitMQClient:
             ExchangeType.TOPIC,
             durable=True
         )
-        # Declare each initial queue and bind it
         for queue_name, routing_keys in self.queues_def.items():
             await self.declare_queue(queue_name, routing_keys)
         logger.info("Connected and declared exchange and queues.")

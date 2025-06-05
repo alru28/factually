@@ -157,7 +157,6 @@ def article_to_weaviate_object(article: Union[Article, dict]) -> dict:
     """
     Converts an Article instance (or dict representation) into a Weaviate-compatible object.
     """
-    # If article is a dict, convert to the Pydantic Article model.
     if isinstance(article, dict):
         article = Article.parse_obj(article)
 

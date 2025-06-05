@@ -6,7 +6,7 @@ db.createUser({
   roles: [{ role: "readWrite", db: "factually_db" }]
 });
 
-// Helper function to generate a UUIDv4 string.
+// UUID HELPER
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
        var r = Math.random() * 16 | 0,

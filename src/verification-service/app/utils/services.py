@@ -1,7 +1,6 @@
 import os
 import httpx
 from typing import List
-from fastapi.encoders import jsonable_encoder
 from app.utils.logger import DefaultLogger
 from app.models import SearchResult
 

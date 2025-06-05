@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from uuid import UUID
 from app.models import (
     SummarizeRequest, SummarizeResponse, ArticleSummary,
     SentimentRequest, SentimentResponse, ArticleSentiment,
     ClassificationRequest, ClassificationResponse, ArticleClassification
 ) 
-from app.rabbitmq.operations import publish_message
 from app.utils.logger import DefaultLogger
 from app.nlp.processor import get_nlp_processor
 

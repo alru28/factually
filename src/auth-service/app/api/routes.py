@@ -13,7 +13,6 @@ logger = DefaultLogger().get_logger()
 
 router = APIRouter()
 
-# Registration Endpoint
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     logger.info(f"Received registration request for user {user.email}")
@@ -33,7 +32,6 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Registration failed")
     return created_user
 
-# Login Endpoint
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     logger.info(f"Received login request for user {credentials.email}")
@@ -49,7 +47,6 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     response = TokenResponse(access_token=token)
     return response
 
-# API Key Validation Endpoint
 @router.get("/validate")
 async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: Session = Depends(get_db)):
     logger.info("Received API key validation request")
@@ -70,7 +67,6 @@ async def validate_api_key(x_api_key: str = Header(..., alias="X-API-Key"), db: 
     logger.info(f"API key validated successfully for user ID {api_key.user_id}")
     return {"message": "API key is valid"}
 
-# API Key Request Endpoint
 @router.post("/apikeys", response_model=APIKeyResponse)
 async def request_api_key(
     current_user: User = Depends(get_current_user),
@@ -83,7 +79,6 @@ async def request_api_key(
     logger.info(f"API Key provisioned succesfully for user {current_user.email}")
     return api_key
 
-# List API keys
 @router.get("/apikeys", response_model=APIKeyListResponse)
 async def list_api_keys(
     current_user: User = Depends(get_current_user),
@@ -106,7 +101,6 @@ async def list_api_keys(
         response.append(formatted_key)
     return APIKeyListResponse(api_keys=response)
 
-# Renew API key
 @router.post("/apikeys/{api_key_id}/renew", response_model=APIKeyResponse)
 async def renew_key(
     api_key_id: int,
@@ -121,7 +115,6 @@ async def renew_key(
     logger.info("API key renewed successfully for user ID {api_key.user_id}")
     return api_key
 
-# Revoke API key
 @router.delete("/apikeys/{api_key_id}")
 async def revoke_key(
     api_key_id: int,
@@ -135,7 +128,6 @@ async def revoke_key(
     logger.info(f"API key revoked successfully for user ID {current_user.id}")
     return {"message": "API key revoked successfully"}
 
-# Password Reset Request Endpoint
 @router.post("/password-reset/request")
 async def password_reset_request(request: PasswordResetRequest, db: Session = Depends(get_db)):
     logger.info(f"Received Password Reset request for user {request.email}")
@@ -147,13 +139,12 @@ async def password_reset_request(request: PasswordResetRequest, db: Session = De
     send_email(
         recipient=request.email,
         subject="Password Reset Request",
-        body=f"Use this token to reset your password: {token}"
+        body=f"Use this token in our playground to reset your password: {token}"
     )
 
     logger.info(f"Password Reset requested successfully for user {request.email}; reset email sent")
     return {"message": "Password reset token sent to email"}
 
-# Password Reset Confirmation Endpoint
 @router.post("/password-reset/confirm")
 async def password_reset_confirm(reset: PasswordResetConfirm, db: Session = Depends(get_db)):
     logger.info(f"Received Password Confirmation request")
@@ -164,7 +155,6 @@ async def password_reset_confirm(reset: PasswordResetConfirm, db: Session = Depe
     logger.info(f"Password Reset Confirmation successful for user {user.email}")    
     return {"message": "Password successfully reset"}
 
-# Email Verification Endpoint
 @router.post("/verify-email")
 async def verify_email_request(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     logger.info(f"Received Email Verification request")

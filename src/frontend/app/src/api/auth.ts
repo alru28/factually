@@ -14,8 +14,6 @@ const apiClient = axios.create({
   },
 });
 
-// Auth Functions
-
 export const registerUser = async (email: string, password: string) => {
   return apiClient.post('/auth/register', { email, password });
 };
@@ -38,8 +36,6 @@ export const verifyEmail = (token: string) => {
   return apiClient.post('/auth/verify-email', { token });
 };
 
-// API Key Management
-
 export const getApiKeys = () => {
   return apiClient.get<{ api_keys: ApiKey[] }>('/auth/apikeys', {
     ...authHeader(),
@@ -59,7 +55,6 @@ export const revokeApiKey = (api_key_id: number) => {
   return apiClient.delete(`/auth/apikeys/${api_key_id}`, authHeader());
 };
 
-// Helper for auth headers
 const authHeader = () => {
   const token = localStorage.getItem('token');
   return { headers: { Authorization: `Bearer ${token}` } };

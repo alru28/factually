@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from uuid import uuid4
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 

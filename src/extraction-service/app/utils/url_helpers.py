@@ -1,4 +1,4 @@
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 from pydantic import HttpUrl, ValidationError
 
 

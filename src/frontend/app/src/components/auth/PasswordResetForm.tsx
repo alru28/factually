@@ -1,4 +1,3 @@
-// components/auth/PasswordResetForm.tsx
 import { useState } from 'react';
 import Button from '../Button.tsx';
 
